@@ -90,8 +90,8 @@ public class HesapIslemleriAdimlari {
         assertInstanceOf(InsufficientBalanceException.class, islemHatasi);
     }
 
-    @Then("işlem dondurulmuş hesap nedeniyle reddedilmeli")
-    public void dondurulmusHesapReddedilmeli() {
+    @Then("işlem dondurulmuş/bakiyeli hesap nedeniyle reddedilmeli")
+    public void uygunOlmayanHesapReddedilmeli() {
         assertInstanceOf(InvalidAccountStateException.class, islemHatasi);
     }
 
