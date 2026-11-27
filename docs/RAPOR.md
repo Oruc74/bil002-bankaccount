@@ -17,11 +17,13 @@ Bu rapor BYS üzerinden teslim edilir. Aşağıdaki Bölüm 1–10 Kısım 1'i, 
 ## 1. Statik Test Sonuçları
 (SonarQube / Checkstyle bulguları)
 
-> Durum: Gün 7'de doldurulacak.
+> Durum: Checkstyle ve elle kod incelemesi Gün 7'de dolduruldu. SonarQube for IDE bulguları eklenecek.
 
 | # | Araç | Dosya:Satır | Kural / Bulgu | Önem | Yorum |
 |---|------|-------------|---------------|------|-------|
-| 1 | | | | | |
+| 1 | Checkstyle 10.17.0 | `src/main/java` (tümü) | `mvn -B checkstyle:check`: 0 ihlal | — | `checkstyle.xml` adlandırma, import, süslü parantez, girinti ve satır uzunluğu gibi biçim kurallarını denetliyor, iş kuralı hatası aramıyor. Test kodları yapılandırmada kapsam dışı. |
+| 2 | Kod incelemesi (elle) | `AccountService.java:171` | Faiz `balance.longValue()` ve tam sayı bölmesiyle hesaplanıyor, kuruşlar kayboluyor | Kritik | H-09. `wb01` ve `wb02` testleriyle kanıtlandı. |
+| 3 | Kod incelemesi (elle) | `AccountService.java:193` | `validateTransferParties` hedef hesabı parametre olarak alıyor ama hiç kontrol etmiyor | Kritik | H-07. `kt03` ve `kt06` testleriyle kanıtlandı. |
 
 ---
 
@@ -245,18 +247,18 @@ H-01 yüzünden kırmızı olan BVA-06, BVA-09, BVA-18 ve BVA-21’de limit aş�
 | H-02 | Dondurulmuş hesaptan para çekilebiliyor | R-3.3 | EP-07 | EP | Yüksek |
 | H-03 | 0 TL yatırma reddedilmiyor | R-2.2 | EP-02, BVA-02 | EP, BVA | Orta |
 | H-04 | Bakiyenin tamamı çekilemiyor | R-3.4 | BVA-14 | BVA | Orta |
-| H-05 | PREMIUM hesapta günlük limite tam eşit (20.000 TL) çekim reddediliyor | R-3.5, Bölüm 3 | BVA-20 | BVA | Orta |
+| H-05 | PREMIUM hesapta günlük limite tam eşit (20.000 TL) çekim reddediliyor | R-3.5, Bölüm 3 | BVA-20, wb04 | BVA, beyaz kutu | Orta |
 | H-06 | Negatif başlangıç bakiyesiyle hesap açılabiliyor | R-1.4 | EP-10, BVA-22 | EP, BVA | Yüksek |
 | H-07 | Dondurulmuş veya kapalı hesaba transfer yapılabiliyor | R-4.3 | KT-03, KT-06 | karar tablosu | Kritik |
 | H-08 | Aynı hesaba transfer yapılabiliyor | R-4.4 | KT-04 | karar tablosu | Yüksek |
-| H-09 | Aylık faiz tam liraya kırpılıyor | R-8.3 | FZ-01, FZ-02, FZ-03, FZ-07 | EP | Kritik |
+| H-09 | Aylık faiz tam liraya kırpılıyor | R-8.3 | FZ-01, FZ-02, FZ-03, FZ-07, wb01, wb02 | EP, beyaz kutu | Kritik |
 | H-10 | Bakiyeli hesap kapatılabiliyor | R-7.2 | ST-04, ST-08 | durum geçişi | Kritik |
 | H-11 | Dondurulmuş hesap tekrar dondurulabiliyor | R-5.1 | ST-05 | durum geçişi | Yüksek |
 
 > Her hata için: ilgili gereksinim kodu (örn. R-3.4), hatayı yakalayan test metodu ve
 > beklenen / gerçekleşen davranışı belirtin.
 
-Testlerin tamamı `AccountServiceBlackBoxTest` sınıfındadır.
+`wb` ile başlayan testler `AccountServiceWhiteBoxTest`, diğerleri `AccountServiceBlackBoxTest` sınıfındadır.
 
 ### H-01: Reddedilen yatırma ve çekme denemeleri için FAILED kaydı oluşmuyor
 
@@ -309,8 +311,8 @@ Testlerin tamamı `AccountServiceBlackBoxTest` sınıfındadır.
 | İhlal edilen gereksinim | R-3.5, Bölüm 3 |
 | Yeniden üretme adımları | 30.000 TL bakiyeli PREMIUM hesap aç, 20.000 TL çek (veya önce 12.000, sonra 8.000 TL çek) |
 | Beklenen / Gerçekleşen | Toplam 20.000 TL çekilebilir / Tek seferde 20.000 TL "Günlük çekim limiti aşıldı" hatasıyla reddedilir; 12.000 + 8.000 denemesinde ikinci çekim 422 döner, bakiye 18.000 TL kalır |
-| Yakalayan test | `bva20_withdraw_premiumGunlukLimit_20000TL` |
-| Hangi teknikle bulundu | BVA |
+| Yakalayan test | `bva20_withdraw_premiumGunlukLimit_20000TL`, `wb04_withdraw_gunlukLimitKontrol_premium` |
+| Hangi teknikle bulundu | BVA, beyaz kutu |
 | Etki seviyesi | Orta |
 
 ### H-06: Negatif başlangıç bakiyesiyle hesap açılabiliyor
@@ -353,10 +355,10 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | Alan | Değer |
 |------|-------|
 | İhlal edilen gereksinim | R-8.3 |
-| Yeniden üretme adımları | STANDARD hesaplarda 1.000 ve 2 TL, PREMIUM hesaplarda 1.000 ve 2.500,50 TL başlangıç bakiyesiyle aylık faiz uygula. |
-| Beklenen / Gerçekleşen | Faiz kuruşa yarım yukarı yuvarlanır / Faiz tam liraya kırpıldı. Beklenen ve gerçekleşen bakiyeler sırasıyla 1.002,50 / 1.002,00 TL, 2,01 / 2,00 TL, 1.004,17 / 1.004,00 TL ve 2.510,92 / 2.510,50 TL oldu. |
-| Yakalayan test | `fz01_faiz_standartHesap`, `fz02_faiz_premiumHesap`, `fz03_faiz_yarimKurusYukariYuvarlanir`, `fz07_faiz_premiumHesapOndalikBakiye` |
-| Hangi teknikle bulundu | EP |
+| Yeniden üretme adımları | STANDARD hesaplarda 1.000, 2 ve 999 TL, PREMIUM hesaplarda 1.000, 2.500,50 ve 239,99 TL başlangıç bakiyesiyle aylık faiz uygula. |
+| Beklenen / Gerçekleşen | Faiz kuruşa yarım yukarı yuvarlanır / Faiz tam liraya kırpıldı. Beklenen / gerçekleşen bakiyeler: 1.002,50 / 1.002,00; 2,01 / 2,00; 1.001,50 / 1.001,00; 1.004,17 / 1.004,00; 2.510,92 / 2.510,50; 240,99 / 239,99 TL. |
+| Yakalayan test | `fz01_faiz_standartHesap`, `fz02_faiz_premiumHesap`, `fz03_faiz_yarimKurusYukariYuvarlanir`, `fz07_faiz_premiumHesapOndalikBakiye`, `wb01_calculateInterest_standartHesap_dogruFaiz`, `wb02_calculateInterest_premiumHesap_dogruFaiz` |
+| Hangi teknikle bulundu | EP, beyaz kutu |
 | Etki seviyesi | Kritik |
 
 ### H-10: Bakiyeli hesap kapatılabiliyor
