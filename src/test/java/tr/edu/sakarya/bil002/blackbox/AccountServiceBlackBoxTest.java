@@ -560,23 +560,172 @@ class AccountServiceBlackBoxTest {
     // ===================== KARAR TABLOSU — Transfer kuralları =====================
 
     @Test
-    void transfer_ikisiDeAktif_basarili() {
-        // TODO
+    void kt01_transfer_ikisiDeAktif_basarili() {
+        String kaynak = hesapAc("STANDARD", 1000.0);
+        String hedef = hesapAc("STANDARD", 200.0);
+
+        accountService.transfer(kaynak, hedef, 250.0);
+
+        basariKontrol(kaynak, TransactionType.TRANSFER, 250.0, 750.0);
+        basariKontrol(hedef, TransactionType.TRANSFER, 250.0, 450.0);
     }
 
     @Test
-    void transfer_kaynakDondurulmus_reddedilmeli() {
-        // TODO
+    void kt02_transfer_kaynakDondurulmus_reddedilmeli() {
+        String kaynak = hesapAc("STANDARD", 1000.0);
+        String hedef = hesapAc("STANDARD", 200.0);
+        accountService.freezeAccount(kaynak);
+        assertEquals(AccountStatus.FROZEN, accountService.getAccount(kaynak).getStatus());
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.transfer(kaynak, hedef, 250.0));
+
+        transferRetKontrol(kaynak, 1000.0, AccountStatus.FROZEN);
+        transferRetKontrol(hedef, 200.0, AccountStatus.ACTIVE);
     }
 
     @Test
-    void transfer_hedefDondurulmus_reddedilmeli() {
-        // TODO
+    @Tag("hata")
+    void kt03_transfer_hedefDondurulmus_reddedilmeli() {
+        // R-4.3: Dondurulmuş hedefe transfer reddedilmeli. Rapor: H-07
+        String kaynak = hesapAc("STANDARD", 1000.0);
+        String hedef = hesapAc("STANDARD", 200.0);
+        accountService.freezeAccount(hedef);
+        assertEquals(AccountStatus.FROZEN, accountService.getAccount(hedef).getStatus());
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.transfer(kaynak, hedef, 250.0));
+
+        transferRetKontrol(kaynak, 1000.0, AccountStatus.ACTIVE);
+        transferRetKontrol(hedef, 200.0, AccountStatus.FROZEN);
     }
 
     @Test
-    void transfer_ayniHesap_reddedilmeli() {
-        // TODO
+    @Tag("hata")
+    void kt04_transfer_ayniHesap_reddedilmeli() {
+        // R-4.4: Aynı hesaba transfer reddedilmeli. Rapor: H-08
+        String no = hesapAc("STANDARD", 1000.0);
+
+        assertThrows(IllegalArgumentException.class, () -> accountService.transfer(no, no, 250.0));
+
+        transferRetKontrol(no, 1000.0, AccountStatus.ACTIVE);
+    }
+
+    @Test
+    void kt05_transfer_kaynakKapali_reddedilmeli() {
+        String kaynak = hesapAc("STANDARD", 0.0);
+        String hedef = hesapAc("STANDARD", 200.0);
+        accountService.closeAccount(kaynak);
+        assertEquals(AccountStatus.CLOSED, accountService.getAccount(kaynak).getStatus());
+
+        // Kapalı kaynağın bakiyesi sıfırdır. Durum ve bakiye hatalarının ikisi de kabul edilir.
+        RuntimeException hata = assertThrows(RuntimeException.class, () -> accountService.transfer(kaynak, hedef, 250.0));
+        assertTrue(hata instanceof InvalidAccountStateException || hata instanceof InsufficientBalanceException);
+
+        transferRetKontrol(kaynak, 0.0, AccountStatus.CLOSED);
+        transferRetKontrol(hedef, 200.0, AccountStatus.ACTIVE);
+    }
+
+    @Test
+    @Tag("hata")
+    void kt06_transfer_hedefKapali_reddedilmeli() {
+        // R-4.3: Kapalı hedefe transfer reddedilmeli. Rapor: H-07
+        String kaynak = hesapAc("STANDARD", 1000.0);
+        String hedef = hesapAc("STANDARD", 0.0);
+        accountService.closeAccount(hedef);
+        assertEquals(AccountStatus.CLOSED, accountService.getAccount(hedef).getStatus());
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.transfer(kaynak, hedef, 250.0));
+
+        transferRetKontrol(kaynak, 1000.0, AccountStatus.ACTIVE);
+        transferRetKontrol(hedef, 0.0, AccountStatus.CLOSED);
+    }
+
+    @Test
+    void kt07_transfer_bakiyeYetersiz_reddedilmeli() {
+        String kaynak = hesapAc("STANDARD", 100.0);
+        String hedef = hesapAc("STANDARD", 200.0);
+
+        assertThrows(InsufficientBalanceException.class, () -> accountService.transfer(kaynak, hedef, 100.01));
+
+        transferRetKontrol(kaynak, 100.0, AccountStatus.ACTIVE);
+        transferRetKontrol(hedef, 200.0, AccountStatus.ACTIVE);
+    }
+
+    @Test
+    void kt08_transfer_kaynakYok_reddedilmeli() {
+        String kaynak = "0000000000";
+        String hedef = hesapAc("STANDARD", 200.0);
+
+        assertThrows(AccountNotFoundException.class, () -> accountService.transfer(kaynak, hedef, 250.0));
+
+        transferRetKontrol(hedef, 200.0, AccountStatus.ACTIVE);
+    }
+
+    @Test
+    void kt09_transfer_hedefYok_reddedilmeli() {
+        String kaynak = hesapAc("STANDARD", 1000.0);
+        String hedef = "0000000000";
+
+        assertThrows(AccountNotFoundException.class, () -> accountService.transfer(kaynak, hedef, 250.0));
+
+        transferRetKontrol(kaynak, 1000.0, AccountStatus.ACTIVE);
+    }
+
+    @Test
+    void kt10_transfer_sifirTutar_reddedilmeli() {
+        String kaynak = hesapAc("STANDARD", 1000.0);
+        String hedef = hesapAc("STANDARD", 200.0);
+
+        assertThrows(IllegalArgumentException.class, () -> accountService.transfer(kaynak, hedef, 0.0));
+
+        transferRetKontrol(kaynak, 1000.0, AccountStatus.ACTIVE);
+        transferRetKontrol(hedef, 200.0, AccountStatus.ACTIVE);
+    }
+
+    @Test
+    void kt11_transfer_negatifTutar_reddedilmeli() {
+        String kaynak = hesapAc("STANDARD", 1000.0);
+        String hedef = hesapAc("STANDARD", 200.0);
+
+        assertThrows(IllegalArgumentException.class, () -> accountService.transfer(kaynak, hedef, -100.0));
+
+        transferRetKontrol(kaynak, 1000.0, AccountStatus.ACTIVE);
+        transferRetKontrol(hedef, 200.0, AccountStatus.ACTIVE);
+    }
+
+    @Test
+    void kt12_transfer_tamBakiye_aktarilabilmeli() {
+        String kaynak = hesapAc("STANDARD", 1000.0);
+        String hedef = hesapAc("STANDARD", 200.0);
+
+        accountService.transfer(kaynak, hedef, 1000.0);
+
+        basariKontrol(kaynak, TransactionType.TRANSFER, 1000.0, 0.0);
+        basariKontrol(hedef, TransactionType.TRANSFER, 1000.0, 1200.0);
+    }
+
+    @Test
+    void kt13_transfer_ayriLimitiYok() {
+        String kaynak = hesapAc("STANDARD", 70000.0);
+        String hedef = hesapAc("STANDARD", 1000.0);
+
+        // Tutar, belgelenen yatırma ve günlük çekim limitlerinin üstündedir.
+        accountService.transfer(kaynak, hedef, 60000.0);
+
+        basariKontrol(kaynak, TransactionType.TRANSFER, 60000.0, 10000.0);
+        basariKontrol(hedef, TransactionType.TRANSFER, 60000.0, 61000.0);
+    }
+
+    @Test
+    void kt14_transfer_gunlukCekimLimitineSayilmaz() {
+        String kaynak = hesapAc("STANDARD", 10000.0);
+        String hedef = hesapAc("STANDARD", 200.0);
+
+        accountService.transfer(kaynak, hedef, 1000.0);
+        basariKontrol(kaynak, TransactionType.TRANSFER, 1000.0, 9000.0);
+
+        accountService.withdraw(kaynak, 5000.0);
+
+        assertEquals(4000.0, accountService.getAccount(kaynak).getBalance(), 0.001);
     }
 
     // ===================== YARDIMCI METOTLAR =====================
@@ -596,6 +745,16 @@ class AccountServiceBlackBoxTest {
         assertEquals(bakiye, accountService.getAccount(no).getBalance(), 0.001, "bakiye değişmemeli");
         assertEquals(durum, accountService.getAccount(no).getStatus(), "durum değişmemeli");
         tekKayitKontrol(no, tip, TransactionStatus.FAILED, tutar, bakiye);
+    }
+
+    private void transferRetKontrol(String no, double bakiye, AccountStatus durum) {
+        Account hesap = accountService.getAccount(no);
+        assertEquals(bakiye, hesap.getBalance(), 0.001, "bakiye değişmemeli");
+        assertEquals(durum, hesap.getStatus(), "durum değişmemeli");
+        assertTrue(accountService.getTransactionHistory(no).stream()
+                .noneMatch(k -> k.getType() == TransactionType.TRANSFER
+                        && k.getStatus() == TransactionStatus.SUCCESS),
+                "başarılı transfer kaydı oluşmamalı");
     }
 
     // Hesap açılışı kayıt oluşturmaz (R-1.7), bu yüzden tek işlemden sonra tek kayıt beklenir
