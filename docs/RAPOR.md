@@ -234,15 +234,47 @@ Tüm projede satır oranının düşük kalmasının nedeni HTTP katmanı (`cont
 ---
 
 ## 4. TDD Uygulaması
-(Hangi özellik için, nasıl uygulandı)
 
-> Durum: Gün 9'da doldurulacak.
+`POST /api/accounts/{accountNumber}/upgrade` ile bakiyesi en az 1.000 TL olan `ACTIVE` durumundaki `STANDARD` hesap `PREMIUM` türüne yükseltilir. Başarı yanıtı güncellenmiş hesabı içerir.
 
-- **Özellik:**
-- **Kırmızı (Red):** Yazılan başarısız test ve hata çıktısı
-- **Yeşil (Green):** Testi geçiren en küçük kod değişikliği
-- **Yeniden düzenleme (Refactor):** Yapılan iyileştirme
-- **İlgili commit'ler:**
+### Kırmızı (Red)
+
+`AccountUpgradeIntegrationTest` sınıfı HTTP yanıtını, güncellenmiş hesabın tekrar sorgulanabilmesini ve reddedilen işlemlerde hesabın aynı kalmasını doğrular. Beklenen hata kodları Gereksinimler Bölüm 7'ye göre seçildi.
+
+| Test | Senaryo | Beklenen yanıt |
+|------|---------|----------------|
+| TDD-01 | Aktif STANDARD hesap, 1.000,00 TL ve 1.000,01 TL | `200 OK`, hesap türü PREMIUM |
+| TDD-02 | Aktif STANDARD hesap, 999,99 TL | `422 Unprocessable Entity`, yetersiz bakiye |
+| TDD-03 | Yeterli bakiyesi olan FROZEN ve CLOSED hesaplar | `409 Conflict`, hesap durumu uygun değil |
+| TDD-04 | Aktif ve yeterli bakiyesi olan PREMIUM hesap | `409 Conflict`, hesap türü geçişe uygun değil |
+| TDD-05 | Hesap mevcut değil | `404 Not Found`, hesap bulunamadı mesajı |
+
+`mvn -B test -Dtest=AccountUpgradeIntegrationTest` komutuyla yapılan ilk çalıştırmada yükseltme yolu henüz tanımlı olmadığı için yedi senaryonun tamamı başarısız oldu. TDD-05, hesabın bulunamaması ile yolun bulunamamasını hata mesajından ayırt etti.
+
+```text
+[ERROR]   AccountUpgradeIntegrationTest.tdd01_upgrade_yeterliBakiyePremiumOlmali:40 Status expected:<200> but was:<404>
+[ERROR]   AccountUpgradeIntegrationTest.tdd02_upgrade_limitinBirKurusAltiReddedilmeli:55 Status expected:<422> but was:<404>
+[ERROR]   AccountUpgradeIntegrationTest.tdd03_upgrade_aktifOlmayanHesapReddedilmeli:67 Status expected:<409> but was:<404>
+[ERROR] Tests run: 7, Failures: 7, Errors: 0, Skipped: 0
+```
+
+### Yeşil (Green)
+
+`AccountService` hesabı yükler ve durum, tür, bakiye koşullarını kontrol eder. Uygun hesabın türünü `PREMIUM` olarak kaydeder. `AccountController` güncellenen hesabı `200 OK` ile döndürür. Reddedilen isteklerde mevcut istisna işleyicisi uygun HTTP kodunu ve hata gövdesini üretir.
+
+### Yeniden düzenleme (Refactor)
+
+`MIN_PREMIUM_UPGRADE_BALANCE` sabiti bakiye kontrolüne ve yetersiz bakiye mesajına aynı tutarı sağlar. Eşik değişirse tek bir değeri güncellemek yeterlidir.
+
+Yeşil ve yeniden düzenleme adımlarında `mvn -B checkstyle:check test -DexcludedGroups=hata` komutuyla 69 testin tamamı geçti. Checkstyle 0 ihlal bildirdi.
+
+### TDD commit’leri
+
+| Adım | Commit |
+|------|--------|
+| Kırmızı | `aefc35f959b4f8fdf6ea8ba73ea16244fca3586d` |
+| Yeşil | `faa21492c0762e5258484be84462f0e68cad6ef6` |
+| Yeniden düzenleme | `77a8afd9b1ad6d163216da0ecc004360e5015a82` |
 
 ---
 

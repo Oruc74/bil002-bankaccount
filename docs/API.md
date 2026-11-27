@@ -17,6 +17,7 @@
 | POST | `/api/accounts/{accountNumber}/unfreeze` | Dondurmayı kaldır | `200 OK` |
 | POST | `/api/accounts/{accountNumber}/close` | Hesabı kapat | `200 OK` |
 | POST | `/api/accounts/{accountNumber}/interest` | Aylık faiz uygula | `200 OK` |
+| POST | `/api/accounts/{accountNumber}/upgrade` | STANDARD hesabı PREMIUM'a yükselt | `200 OK` |
 | GET | `/api/accounts/{accountNumber}/transactions` | İşlem geçmişi | `200 OK` |
 | POST | `/api/transactions/transfer` | Hesaplar arası transfer | `200 OK` |
 | GET | `/api/transactions/{accountNumber}` | İşlem geçmişi (alternatif yol) | `200 OK` |
@@ -110,6 +111,16 @@
 
 İstek gövdesi yok. **Yanıt — `200 OK`:** Faiz eklenmiş hesap.
 **Hatalar:** `404`, `409` (hesap ACTIVE değil)
+
+### POST `/api/accounts/{accountNumber}/upgrade` — PREMIUM'a Yükselt
+
+İstek gövdesi yok. İşlem için hesap `ACTIVE` durumunda ve `STANDARD` türünde olmalı, bakiyesi en az 1.000 TL olmalıdır.
+
+`200 OK` yanıtı güncellenmiş hesabı içerir. Hesap türü `PREMIUM` olur, bakiye ve hesap durumu korunur.
+
+- `404 Not Found` hesap bulunamadığında döner.
+- `409 Conflict` hesap dondurulmuş, kapalı veya zaten PREMIUM ise döner.
+- `422 Unprocessable Entity` bakiye 1.000 TL'nin altındaysa döner.
 
 ### GET `/api/accounts/{accountNumber}/transactions` — İşlem Geçmişi
 
