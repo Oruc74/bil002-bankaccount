@@ -29,6 +29,7 @@ public class AccountService {
     private static final double PREMIUM_MAX_DEPOSIT = 50_000.0;
     private static final double STANDARD_DAILY_WITHDRAWAL_LIMIT = 5_000.0;
     private static final double PREMIUM_DAILY_WITHDRAWAL_LIMIT = 20_000.0;
+    private static final int MIN_PREMIUM_UPGRADE_BALANCE = 1_000;
 
     private static final Logger LOG = LoggerFactory.getLogger(AccountService.class);
 
@@ -184,8 +185,9 @@ public class AccountService {
         if (!STANDARD.equals(account.getAccountType())) {
             throw new InvalidAccountStateException("Sadece STANDARD hesaplar PREMIUM'a yükseltilebilir");
         }
-        if (account.getBalance() < 1_000.0) {
-            throw new InsufficientBalanceException("Premium yükseltme için en az 1000 TL bakiye gerekir");
+        if (account.getBalance() < MIN_PREMIUM_UPGRADE_BALANCE) {
+            throw new InsufficientBalanceException(
+                    "Premium yükseltme için en az " + MIN_PREMIUM_UPGRADE_BALANCE + " TL bakiye gerekir");
         }
         account.setAccountType(PREMIUM);
         return accountRepository.save(account);
