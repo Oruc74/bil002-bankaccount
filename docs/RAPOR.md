@@ -272,9 +272,9 @@ Yeşil ve yeniden düzenleme adımlarında `mvn -B checkstyle:check test -Dexclu
 
 | Adım | Commit |
 |------|--------|
-| Kırmızı | `aefc35f959b4f8fdf6ea8ba73ea16244fca3586d` |
-| Yeşil | `faa21492c0762e5258484be84462f0e68cad6ef6` |
-| Yeniden düzenleme | `77a8afd9b1ad6d163216da0ecc004360e5015a82` |
+| Kırmızı | `4bb3eb44a1adf6e916198d76f5977dd9edb1ebf3` |
+| Yeşil | `a883c6475d93f90092d5c5be78bd2686cfa47790` |
+| Yeniden düzenleme | `006abadec924e13220943fdba3e43f809b824c33` |
 
 ---
 
