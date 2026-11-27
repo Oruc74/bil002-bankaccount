@@ -237,6 +237,20 @@ class AccountServiceBlackBoxTest {
         assertEquals(5000.0, accountService.getAccount(no).getBalance(), 0.001);
     }
 
+    @Test
+    @Tag("hata")
+    void ep18_withdraw_kapaliHesap_reddedilmeli() {
+        // R-3.8: Reddedilen çekme için FAILED kaydı oluşmalı. Rapor: H-01
+        String no = hesapAc("STANDARD", 0.0);
+        accountService.closeAccount(no);
+
+        // Kapalı hesapta pozitif çekim hem durum hem bakiye kuralına takılır.
+        RuntimeException hata = assertThrows(RuntimeException.class, () -> accountService.withdraw(no, 1.0));
+
+        assertTrue(hata instanceof InvalidAccountStateException || hata instanceof InsufficientBalanceException);
+        retKontrol(no, TransactionType.WITHDRAWAL, 1.0, 0.0, AccountStatus.CLOSED);
+    }
+
     // ===================== BVA TESTLERİ — Sınır Değer Analizi =====================
     // Her sınır için üç değer: sınırın altı, sınır, sınırın üstü
 
@@ -533,29 +547,284 @@ class AccountServiceBlackBoxTest {
     // ===================== DURUM GEÇİŞ TESTLERİ =====================
 
     @Test
-    void hesap_aktiftenDonduruldu() {
-        // TODO
+    void st01_aktiftenDonduruldu() {
+        String no = hesapAc("STANDARD", 100.0);
+
+        accountService.freezeAccount(no);
+
+        durumKontrol(no, AccountStatus.FROZEN, 100.0);
+        assertTrue(accountService.getTransactionHistory(no).isEmpty());
     }
 
     @Test
-    void hesap_donduruldutanAktife() {
-        // TODO
+    void st02_aktifHesapCozulemez() {
+        String no = hesapAc("STANDARD", 100.0);
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.unfreezeAccount(no));
+
+        durumKontrol(no, AccountStatus.ACTIVE, 100.0);
+        assertTrue(accountService.getTransactionHistory(no).isEmpty());
     }
 
     @Test
-    void hesap_aktiftenKapali() {
-        // TODO
+    void st03_aktiftenKapali() {
+        String no = hesapAc("STANDARD", 0.0);
+
+        accountService.closeAccount(no);
+
+        durumKontrol(no, AccountStatus.CLOSED, 0.0);
+        assertTrue(accountService.getTransactionHistory(no).isEmpty());
     }
 
     @Test
-    void hesap_kapaliHesapYenidenAcilamaz() {
-        // TODO
+    @Tag("hata")
+    void st04_bakiyeliAktifHesapKapatilamaz() {
+        // R-7.2: Bakiyesi sıfır olmayan hesap kapatılamamalı. Rapor: H-10
+        String no = hesapAc("STANDARD", 0.01);
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.closeAccount(no));
+
+        durumKontrol(no, AccountStatus.ACTIVE, 0.01);
+        assertTrue(accountService.getTransactionHistory(no).isEmpty());
     }
 
     @Test
-    void hesap_dondurulmusHesapKapatma_bakiyeSifirsa() {
-        // TODO
+    @Tag("hata")
+    void st05_dondurulmusHesapTekrarDondurulamaz() {
+        // R-5.1: Dondurulmuş hesap tekrar dondurulamamalı. Rapor: H-11
+        String no = hesapAc("STANDARD", 100.0);
+        accountService.freezeAccount(no);
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.freezeAccount(no));
+
+        durumKontrol(no, AccountStatus.FROZEN, 100.0);
+        assertTrue(accountService.getTransactionHistory(no).isEmpty());
     }
+
+    @Test
+    void st06_dondurulmustanAktife() {
+        String no = hesapAc("STANDARD", 100.0);
+        accountService.freezeAccount(no);
+
+        accountService.unfreezeAccount(no);
+
+        durumKontrol(no, AccountStatus.ACTIVE, 100.0);
+        assertTrue(accountService.getTransactionHistory(no).isEmpty());
+    }
+
+    @Test
+    void st07_dondurulmusHesapKapatma_bakiyeSifirsa() {
+        String no = hesapAc("STANDARD", 0.0);
+        accountService.freezeAccount(no);
+
+        accountService.closeAccount(no);
+
+        durumKontrol(no, AccountStatus.CLOSED, 0.0);
+        assertTrue(accountService.getTransactionHistory(no).isEmpty());
+    }
+
+    @Test
+    @Tag("hata")
+    void st08_bakiyeliDondurulmusHesapKapatilamaz() {
+        // R-7.2: Bakiyesi sıfır olmayan hesap kapatılamamalı. Rapor: H-10
+        String no = hesapAc("STANDARD", 0.01);
+        accountService.freezeAccount(no);
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.closeAccount(no));
+
+        durumKontrol(no, AccountStatus.FROZEN, 0.01);
+        assertTrue(accountService.getTransactionHistory(no).isEmpty());
+    }
+
+    @Test
+    void st09_kapaliHesapDondurulamaz() {
+        String no = hesapAc("STANDARD", 0.0);
+        accountService.closeAccount(no);
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.freezeAccount(no));
+
+        durumKontrol(no, AccountStatus.CLOSED, 0.0);
+        assertTrue(accountService.getTransactionHistory(no).isEmpty());
+    }
+
+    @Test
+    void st10_kapaliHesapYenidenAcilamaz() {
+        String no = hesapAc("STANDARD", 0.0);
+        accountService.closeAccount(no);
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.unfreezeAccount(no));
+
+        durumKontrol(no, AccountStatus.CLOSED, 0.0);
+        assertTrue(accountService.getTransactionHistory(no).isEmpty());
+    }
+
+    @Test
+    void st11_kapaliHesapTekrarKapatilamaz() {
+        String no = hesapAc("STANDARD", 0.0);
+        accountService.closeAccount(no);
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.closeAccount(no));
+
+        durumKontrol(no, AccountStatus.CLOSED, 0.0);
+        assertTrue(accountService.getTransactionHistory(no).isEmpty());
+    }
+
+    // ===================== FAİZ, GEÇMİŞ VE HESAP SORGULAMA =====================
+
+    @Test
+    @Tag("hata")
+    void fz01_faiz_standartHesap() {
+        // R-8.3: Aylık faiz kuruşa yarım yukarı yuvarlanmalı. Rapor: H-09
+        String no = hesapAc("STANDARD", 1000.0);
+
+        accountService.calculateInterest(no);
+
+        basariKontrol(no, TransactionType.INTEREST, 2.50, 1002.50);
+    }
+
+    @Test
+    @Tag("hata")
+    void fz02_faiz_premiumHesap() {
+        // R-8.3: Aylık faiz kuruşa yarım yukarı yuvarlanmalı. Rapor: H-09
+        String no = hesapAc("PREMIUM", 1000.0);
+
+        accountService.calculateInterest(no);
+
+        basariKontrol(no, TransactionType.INTEREST, 4.17, 1004.17);
+    }
+
+    @Test
+    @Tag("hata")
+    void fz03_faiz_yarimKurusYukariYuvarlanir() {
+        // R-8.3: Aylık faiz kuruşa yarım yukarı yuvarlanmalı. Rapor: H-09
+        String no = hesapAc("STANDARD", 2.0);
+
+        accountService.calculateInterest(no);
+
+        basariKontrol(no, TransactionType.INTEREST, 0.01, 2.01);
+    }
+
+    @Test
+    void fz04_faiz_dondurulmusHesapReddedilir() {
+        String no = hesapAc("STANDARD", 1000.0);
+        accountService.freezeAccount(no);
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.calculateInterest(no));
+
+        durumKontrol(no, AccountStatus.FROZEN, 1000.0);
+    }
+
+    @Test
+    void fz05_faiz_kapaliHesapReddedilir() {
+        String no = hesapAc("STANDARD", 0.0);
+        accountService.closeAccount(no);
+
+        assertThrows(InvalidAccountStateException.class, () -> accountService.calculateInterest(no));
+
+        durumKontrol(no, AccountStatus.CLOSED, 0.0);
+    }
+
+    @Test
+    void fz06_faiz_standartHesapYuksekBakiye() {
+        String no = hesapAc("STANDARD", 12000.0);
+
+        accountService.calculateInterest(no);
+
+        basariKontrol(no, TransactionType.INTEREST, 30.00, 12030.00);
+    }
+
+    @Test
+    @Tag("hata")
+    void fz07_faiz_premiumHesapOndalikBakiye() {
+        // R-8.3: Aylık faiz kuruşa yarım yukarı yuvarlanmalı. Rapor: H-09
+        String no = hesapAc("PREMIUM", 2500.50);
+
+        accountService.calculateInterest(no);
+
+        basariKontrol(no, TransactionType.INTEREST, 10.42, 2510.92);
+    }
+
+    @Test
+    void fz08_faiz_standartHesapSifirBakiye() {
+        String no = hesapAc("STANDARD", 0.0);
+
+        accountService.calculateInterest(no);
+
+        basariKontrol(no, TransactionType.INTEREST, 0.00, 0.00);
+    }
+
+    @Test
+    void ig01_gecmis_olmayanHesapReddedilir() {
+        assertThrows(AccountNotFoundException.class,
+                () -> accountService.getTransactionHistory("0000000000"));
+    }
+
+    @Test
+    void ig02_gecmis_tumKayitlarYenidenEskiye() throws InterruptedException {
+        String no = hesapAc("STANDARD", 100.0);
+        accountService.deposit(no, 10.0);
+        // Kayıtların zaman damgaları farklı olsun.
+        Thread.sleep(20);
+        accountService.deposit(no, 20.0);
+
+        List<Transaction> kayitlar = accountService.getTransactionHistory(no);
+
+        assertEquals(2, kayitlar.size());
+        assertTrue(kayitlar.get(0).getTimestamp().isAfter(kayitlar.get(1).getTimestamp()));
+        assertEquals(20.0, kayitlar.get(0).getAmount(), 0.001);
+    }
+
+    @Test
+    @Tag("hata")
+    void ig03_gecmis_basariliVeReddedilenKayitlarDoner() {
+        // R-2.7: Reddedilen yatırma için FAILED kaydı oluşmalı. Rapor: H-01
+        String no = hesapAc("STANDARD", 100.0);
+        accountService.deposit(no, 10.0);
+        assertThrows(IllegalArgumentException.class, () -> accountService.deposit(no, -1.0));
+
+        List<Transaction> kayitlar = accountService.getTransactionHistory(no);
+
+        assertEquals(2, kayitlar.size());
+        List<TransactionStatus> durumlar = List.of(kayitlar.get(0).getStatus(), kayitlar.get(1).getStatus());
+        assertTrue(durumlar.contains(TransactionStatus.SUCCESS));
+        assertTrue(durumlar.contains(TransactionStatus.FAILED));
+    }
+
+    @Test
+    void ig04_gecmis_dondurulmusHesaptaKayitDoner() {
+        String no = hesapAc("STANDARD", 100.0);
+        accountService.deposit(no, 10.0);
+        accountService.freezeAccount(no);
+
+        List<Transaction> kayitlar = accountService.getTransactionHistory(no);
+
+        assertEquals(1, kayitlar.size());
+        assertEquals(TransactionType.DEPOSIT, kayitlar.get(0).getType());
+        assertEquals(10.0, kayitlar.get(0).getAmount(), 0.001);
+    }
+
+    @Test
+    void hs01_sorgulama_herDurumdaHesapBilgisiDoner() {
+        String no = hesapAc("STANDARD", 0.0);
+        assertEquals(AccountStatus.ACTIVE, accountService.getAccount(no).getStatus());
+
+        accountService.freezeAccount(no);
+        assertEquals(AccountStatus.FROZEN, accountService.getAccount(no).getStatus());
+
+        accountService.closeAccount(no);
+        Account hesap = accountService.getAccount(no);
+        assertEquals(AccountStatus.CLOSED, hesap.getStatus());
+        assertEquals(no, hesap.getAccountNumber());
+        assertEquals("Ali", hesap.getOwnerName());
+        assertEquals("STANDARD", hesap.getAccountType());
+        assertEquals(0.0, hesap.getBalance(), 0.001);
+    }
+
+    @Test
+    void hs02_sorgulama_olmayanHesapReddedilir() {
+        assertThrows(AccountNotFoundException.class, () -> accountService.getAccount("0000000000"));
+    }
+
 
     // ===================== KARAR TABLOSU — Transfer kuralları =====================
 
@@ -729,6 +998,12 @@ class AccountServiceBlackBoxTest {
     }
 
     // ===================== YARDIMCI METOTLAR =====================
+
+    private void durumKontrol(String no, AccountStatus durum, double bakiye) {
+        Account hesap = accountService.getAccount(no);
+        assertEquals(durum, hesap.getStatus());
+        assertEquals(bakiye, hesap.getBalance(), 0.001);
+    }
 
     private String hesapAc(String tur, double bakiye) {
         return accountService.createAccount("Ali", tur, bakiye).getAccountNumber();
