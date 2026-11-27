@@ -75,6 +75,11 @@ public class HesapIslemleriAdimlari {
         islemiDene(() -> accountService.closeAccount(hesapNo(musteri)));
     }
 
+    @When("{word} adlı müşterinin hesabına aylık faiz uygulanır")
+    public void aylikFaizUygula(String musteri) {
+        islemiDene(() -> accountService.calculateInterest(hesapNo(musteri)));
+    }
+
     @Then("işlem başarıyla tamamlanmalı")
     public void islemBasariliOlmali() {
         assertNull(islemHatasi, () -> "İşlemin tamamlanması bekleniyordu: " + islemHatasi);
@@ -129,6 +134,11 @@ public class HesapIslemleriAdimlari {
     @Then("{word} adlı müşterinin işlem geçmişinde {double} TL tutarında başarılı transfer kaydı bulunmalı")
     public void transferKaydiniDogrula(String musteri, double tutar) {
         islemKaydiniDogrula(musteri, TransactionType.TRANSFER, tutar);
+    }
+
+    @Then("{word} adlı müşterinin işlem geçmişinde {double} TL tutarında başarılı faiz kaydı bulunmalı")
+    public void faizKaydiniDogrula(String musteri, double tutar) {
+        islemKaydiniDogrula(musteri, TransactionType.INTEREST, tutar);
     }
 
     private String hesapNo(String musteri) {
