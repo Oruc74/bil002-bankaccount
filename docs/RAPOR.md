@@ -279,13 +279,20 @@ Yeşil ve yeniden düzenleme adımlarında `mvn -B checkstyle:check test -Dexclu
 ---
 
 ## 5. BDD Senaryoları
-(Feature dosyalarının listesi ve açıklamaları)
 
-> Durum: Gün 10–11'de doldurulacak.
+Beş feature dosyasındaki 22 senaryo, hesap işlemlerinin sonucunu bakiye, hesap durumu ve işlem geçmişi üzerinden doğrular. `Scenario Outline` içindeki her `Examples` satırı bir senaryo olarak çalışır.
 
 | Feature Dosyası | Senaryo Sayısı | Açıklama | Sonuç |
 |-----------------|----------------|----------|-------|
-| | | | |
+| `para_yatirma.feature` | 3 | Kuruşlu tutarda ve tam limitte yatırma, 0 TL yatırmanın reddi | 2 geçti, 1 `@hata` (H-03) |
+| `para_cekme.feature` | 3 | Geçerli çekim, yetersiz bakiye ve dondurulmuş hesaptan çekimin reddi | 2 geçti, 1 `@hata` (H-02) |
+| `transfer.feature` | 3 | İki hesabın bakiyesi ve işlem kayıtları, yetersiz bakiye ve dondurulmuş hedef | 2 geçti, 1 `@hata` (H-07) |
+| `hesap_durumu.feature` | 5 | Dondurma, yeniden etkinleştirme, sıfır bakiyeli hesabı kapatma, bakiyeli hesabı kapatma ve tekrar dondurma girişimleri | 3 geçti, 2 `@hata` (H-10 ve H-11) |
+| `faiz.feature` | 8 | STANDARD ve PREMIUM aylık faizi, kuruşa yuvarlama, sıfır bakiye ve aktif olmayan hesapta ret | 5 geçti, 3 `@hata` (H-09) |
+
+Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` etiketli `Examples` bloğunda yer alır. `mvn -B test -Dtest=CucumberRunnerTest` komutuyla, örnek dosyadaki iki senaryo dahil 24 senaryo çalıştı. 16 senaryo geçti ve 8 senaryo bilinen hataları yakaladı.
+
+`mvn -B checkstyle:check test -DexcludedGroups=hata` ile 83 test geçti ve Checkstyle 0 ihlal bildirdi. `mvn -B test -Dgroups=hata` çalıştırmasında beklenen şekilde başarısız olan 45 testin 8'i Cucumber senaryosuydu.
 
 ---
 
