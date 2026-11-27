@@ -24,6 +24,7 @@ Bu rapor BYS üzerinden teslim edilir. Aşağıdaki Bölüm 1–10 Kısım 1'i, 
 | 1 | Checkstyle 10.17.0 | `src/main/java` (tümü) | `mvn -B checkstyle:check`: 0 ihlal | — | `checkstyle.xml` adlandırma, import, süslü parantez, girinti ve satır uzunluğu gibi biçim kurallarını denetliyor, iş kuralı hatası aramıyor. Test kodları yapılandırmada kapsam dışı. |
 | 2 | Kod incelemesi (elle) | `AccountService.java:171` | Faiz `balance.longValue()` ve tam sayı bölmesiyle hesaplanıyor, kuruşlar kayboluyor | Kritik | H-09. `wb01` ve `wb02` testleriyle kanıtlandı. |
 | 3 | Kod incelemesi (elle) | `AccountService.java:193` | `validateTransferParties` hedef hesabı parametre olarak alıyor ama hiç kontrol etmiyor | Kritik | H-07. `kt03` ve `kt06` testleriyle kanıtlandı. |
+| 4 | Kod incelemesi (elle) | `TransactionService.java:41-49` | Günlük çekim toplamında tarih filtresi yok, bütün geçmiş toplanıyor | Yüksek | H-12. `zm01`, `zm02`, `zm03` testleriyle kanıtlandı. |
 
 ---
 
@@ -173,14 +174,62 @@ H-01 yüzünden kırmızı olan BVA-06, BVA-09, BVA-18 ve BVA-21’de limit aş�
 ## 3. Beyaz Kutu Test Sonuçları
 (JaCoCo ekran görüntüsü ve açıklama)
 
-> Durum: Gün 7–8'de doldurulacak.
+Kapsama JaCoCo 0.8.12 ile ölçüldü: `mvn -B clean test "-Dmaven.test.failure.ignore=true"`. `@Tag("hata")` testleri dahil 99 test çalıştı; 37'si bilinen hatalar yüzünden kırmızı. Düz `mvn test` bu kırmızı testlerde `BUILD FAILURE` verip kapsama raporu üretmediği için hata yok sayma seçeneği kullanıldı. Ham veri: [kapsama/jacoco.csv](kapsama/jacoco.csv).
 
-- Branch Coverage: %
-- Statement Coverage: %
+- Branch Coverage: servis paketi %100 (48/48), tüm proje %94,2 (49/52)
+- Statement Coverage (satır): servis paketi %100 (121/121), tüm proje %60,7 (196/323)
 
-| Metot | Dal (koşul) | Test Metodu | Kapsandı mı? |
-|-------|-------------|-------------|--------------|
-| | | | |
+![JaCoCo servis paketi](img/jacoco-service.png)
+
+![JaCoCo tüm proje](img/jacoco-genel.png)
+
+### Dal tablosu (AccountService)
+
+Her koşulun doğru ve yanlış olmak üzere iki dalı vardır. `TransactionService` içinde koşul yoktur (0 dal); 14 satırının tamamı çalıştı.
+
+| Metot | Dal (koşul) | Test Metodu (doğru / yanlış) | Kapsandı mı? |
+|-------|-------------|------------------------------|--------------|
+| createAccount | `ownerName == null` | EP-08 / EP-11 | ✔ |
+| createAccount | `ownerName.isBlank()` | EP-08 / EP-11 | ✔ |
+| createAccount | `!STANDARD.equals(accountType)` | EP-11 / EP-12 | ✔ |
+| createAccount | `!PREMIUM.equals(accountType)` | EP-09 / EP-11 | ✔ |
+| createAccount | `initialBalance != null` | EP-11 / EP-12 | ✔ |
+| deposit | `amount == null` | wb05 / EP-01 | ✔ |
+| deposit | `amount < 0` | EP-03 / EP-01 | ✔ |
+| withdraw | `amount == null` | wb06 / EP-06 | ✔ |
+| withdraw | `amount <= 0` | BVA-11 / EP-06 | ✔ |
+| transfer | `amount == null` | wb07 / KT-01 | ✔ |
+| transfer | `amount <= 0` | KT-10 / KT-01 | ✔ |
+| transfer | `source.getBalance() < amount` | KT-07 / KT-12 | ✔ |
+| freezeAccount | `status == CLOSED` | ST-09 / ST-01 | ✔ |
+| unfreezeAccount | `status != FROZEN` | ST-02 / ST-06 | ✔ |
+| closeAccount | `status == CLOSED` | ST-11 / ST-03 | ✔ |
+| calculateInterest | tür `PREMIUM` mu? (%5 / %3) | wb02 / wb01 | ✔ |
+| requireActive | `status != ACTIVE` | EP-04 / EP-01 | ✔ |
+| validateTransferParties | `source.getStatus() != ACTIVE` | KT-02 / KT-01 | ✔ |
+| ensureSufficientBalance | `amount >= account.getBalance()` | BVA-14 / BVA-13 | ✔ |
+| checkDepositLimit | tür `PREMIUM` mu? (50.000 / 10.000) | BVA-08 / BVA-05 | ✔ |
+| checkDepositLimit | `amount > limit` | BVA-06 / BVA-05 | ✔ |
+| checkDailyWithdrawalLimit | tür `PREMIUM` mu? | wb04 / wb03 | ✔ |
+| checkDailyWithdrawalLimit | PREMIUM: `total >= 20.000` | wb04 / BVA-19 | ✔ |
+| checkDailyWithdrawalLimit | STANDARD: `total > 5.000` | wb03 / wb03 | ✔ |
+
+`findAccount` metodunda koşul yoktur; hesap var ve yok durumları wb08 ve wb09 ile çalıştırıldı.
+
+### Zamana bağlı kurallar
+
+Uygulamanın saati testten değiştirilemiyor ve `src/main` değiştirilmiyor. Bu yüzden `ZamanKurallariTest` işlemi normal yoldan yapıyor, sonra kaydın `timestamp` alanını `TransactionRepository` ile geçmişe alıyor. zm01–zm03 dünkü çekimlerin bugünkü limite sayılmamasını (R-3.5, G-6), zm04 işlem geçmişinin yeniden eskiye sıralanmasını (R-9.3) sınıyor. zm04 geçti, zm01–zm03 kaldı (H-12).
+
+### Kapsanamayan dallar ve nedenleri
+
+Servis paketinde kapsanmayan dal yok. Projede kalan 3 dal:
+
+- `GlobalExceptionHandler`, `ex instanceof ErrorResponse` (2 dal): Bu sınıf yalnız HTTP isteklerinde devreye girer. Testler servis metotlarını doğrudan çağırıyor.
+- `Transaction.onCreate`, `timestamp == null` koşulunun yanlış dalı (1 dal): Uygulama kaydı hiçbir zaman hazır bir zamanla oluşturmuyor; testler de zamanı kayıttan sonra değiştiriyor.
+
+Tüm projede satır oranının düşük kalmasının nedeni HTTP katmanı (`controller`, `dto`, `GlobalExceptionHandler`) ve `model` sınıflarının testlerde kullanılmayan getter/setter metotlarıdır.
+
+%100 dal kapsaması hatasızlık anlamına gelmiyor. H-02, H-10 ve H-12 gibi hatalar kodda hiç yazılmamış kontrollerdir; kapsama raporu olmayan kodu gösteremez. Bunlar gereksinimden yazılan testlerle bulundu.
 
 ---
 
@@ -254,11 +303,12 @@ H-01 yüzünden kırmızı olan BVA-06, BVA-09, BVA-18 ve BVA-21’de limit aş�
 | H-09 | Aylık faiz tam liraya kırpılıyor | R-8.3 | FZ-01, FZ-02, FZ-03, FZ-07, wb01, wb02 | EP, beyaz kutu | Kritik |
 | H-10 | Bakiyeli hesap kapatılabiliyor | R-7.2 | ST-04, ST-08 | durum geçişi | Kritik |
 | H-11 | Dondurulmuş hesap tekrar dondurulabiliyor | R-5.1 | ST-05 | durum geçişi | Yüksek |
+| H-12 | Günlük çekim limiti hiç sıfırlanmıyor, önceki günlerin çekimleri de sayılıyor | R-3.5, G-6 | zm01, zm02, zm03 | beyaz kutu | Yüksek |
 
 > Her hata için: ilgili gereksinim kodu (örn. R-3.4), hatayı yakalayan test metodu ve
 > beklenen / gerçekleşen davranışı belirtin.
 
-`wb` ile başlayan testler `AccountServiceWhiteBoxTest`, diğerleri `AccountServiceBlackBoxTest` sınıfındadır.
+`wb` ile başlayan testler `AccountServiceWhiteBoxTest`, `zm` ile başlayanlar `ZamanKurallariTest`, diğerleri `AccountServiceBlackBoxTest` sınıfındadır.
 
 ### H-01: Reddedilen yatırma ve çekme denemeleri için FAILED kaydı oluşmuyor
 
@@ -382,6 +432,19 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | Yakalayan test | `st05_dondurulmusHesapTekrarDondurulamaz` |
 | Hangi teknikle bulundu | durum geçişi |
 | Etki seviyesi | Yüksek |
+
+### H-12: Günlük çekim limiti hiç sıfırlanmıyor
+
+| Alan | Değer |
+|------|-------|
+| İhlal edilen gereksinim | R-3.5, G-6, Bölüm 3 (her gün limit sıfırlanır) |
+| Yeniden üretme adımları | 15.000 TL bakiyeli STANDARD hesap aç, 5.000 TL çek, bu çekim kaydının zamanını `TransactionRepository` ile dün 23:59:59 yap, tekrar 5.000 TL çek |
+| Beklenen / Gerçekleşen | Dünkü çekim bugüne sayılmaz, ikinci çekim kabul edilir, bakiye 5.000 TL / "Günlük çekim limiti aşıldı" hatasıyla reddedildi. PREMIUM hesapta dün 12.000 TL çektikten sonra bugün 10.000 TL çekim de reddedildi. |
+| Yakalayan test | `zm01_standartDunkuCekimBugunkuLimiteSayilmaz`, `zm02_premiumDunkuCekimBugunkuLimiteSayilmaz`, `zm03_dunVeBugunKaristiksaYalnizBugunkuCekimSayilir` |
+| Hangi teknikle bulundu | beyaz kutu (kod incelemesi ve kayıt zamanı değiştirilen testler) |
+| Etki seviyesi | Yüksek |
+
+Kök neden: `TransactionService.getDailyWithdrawalTotal` hesabın bütün başarılı çekimlerini tarih filtresi olmadan topluyor. Limit sıfırlanmadığı için STANDARD hesap toplamda 5.000 TL çektikten sonra bir daha para çekemiyor.
 
 <!--
 Her hata için aşağıdaki kayıt kullanılacak (Hata No H-01, H-02 ... ve testteki "Rapor: H-xx" yorumuyla aynı):
