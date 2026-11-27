@@ -60,6 +60,21 @@ public class HesapIslemleriAdimlari {
         islemiDene(() -> accountService.transfer(hesapNo(gonderen), hesapNo(alici), tutar));
     }
 
+    @When("{word} adlı müşteri hesabını dondurur")
+    public void hesapDondurmayiDene(String musteri) {
+        islemiDene(() -> hesabiDondur(musteri));
+    }
+
+    @When("{word} adlı müşteri hesabının dondurmasını kaldırır")
+    public void hesapDondurmasiniKaldir(String musteri) {
+        islemiDene(() -> accountService.unfreezeAccount(hesapNo(musteri)));
+    }
+
+    @When("{word} adlı müşteri hesabını kapatır")
+    public void hesapKapatmayiDene(String musteri) {
+        islemiDene(() -> accountService.closeAccount(hesapNo(musteri)));
+    }
+
     @Then("işlem başarıyla tamamlanmalı")
     public void islemBasariliOlmali() {
         assertNull(islemHatasi, () -> "İşlemin tamamlanması bekleniyordu: " + islemHatasi);
@@ -86,10 +101,19 @@ public class HesapIslemleriAdimlari {
         assertEquals(beklenen, gercek, TOLERANS);
     }
 
-    @Then("{word} adlı müşterinin hesabı dondurulmuş kalmalı")
-    public void hesapDondurulmusKalmali(String musteri) {
-        Account hesap = accountService.getAccount(hesapNo(musteri));
-        assertEquals(AccountStatus.FROZEN, hesap.getStatus());
+    @Then("{word} adlı müşterinin hesabı dondurulmuş olmalı/kalmalı")
+    public void hesapDondurulmusOlmali(String musteri) {
+        hesapDurumunuDogrula(musteri, AccountStatus.FROZEN);
+    }
+
+    @Then("{word} adlı müşterinin hesabı aktif olmalı")
+    public void hesapAktifOlmali(String musteri) {
+        hesapDurumunuDogrula(musteri, AccountStatus.ACTIVE);
+    }
+
+    @Then("{word} adlı müşterinin hesabı kapalı olmalı")
+    public void hesapKapaliOlmali(String musteri) {
+        hesapDurumunuDogrula(musteri, AccountStatus.CLOSED);
     }
 
     @Then("{word} adlı müşterinin işlem geçmişinde {double} TL tutarında başarılı para yatırma kaydı bulunmalı")
@@ -120,6 +144,11 @@ public class HesapIslemleriAdimlari {
         } catch (IllegalArgumentException | InsufficientBalanceException | InvalidAccountStateException hata) {
             islemHatasi = hata;
         }
+    }
+
+    private void hesapDurumunuDogrula(String musteri, AccountStatus durum) {
+        Account hesap = accountService.getAccount(hesapNo(musteri));
+        assertEquals(durum, hesap.getStatus());
     }
 
     private void islemKaydiniDogrula(String musteri, TransactionType tur, double tutar) {
