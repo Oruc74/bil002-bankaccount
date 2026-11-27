@@ -332,22 +332,22 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 | Hata No | Açıklama | İhlal Edilen Kural | Yakalayan Test | Hangi Teknikle Bulundu | Etki Seviyesi |
 |---------|----------|--------------------|----------------|------------------------|---------------|
 | H-01 | Reddedilen yatırma ve çekme denemeleri için FAILED kaydı oluşmuyor | R-2.7, R-3.8, Bölüm 6 | EP-03, EP-04, EP-05, EP-15, BVA-01, BVA-06, BVA-09, BVA-10, BVA-11, BVA-15, BVA-18, BVA-21, EP-18, IG-03 | EP, BVA | Düşük |
-| H-02 | Dondurulmuş hesaptan para çekilebiliyor | R-3.3 | EP-07 | EP | Yüksek |
-| H-03 | 0 TL yatırma reddedilmiyor | R-2.2 | EP-02, BVA-02 | EP, BVA | Orta |
+| H-02 | Dondurulmuş hesaptan para çekilebiliyor | R-3.3 | EP-07, `para_cekme.feature` — “Dondurulmuş hesaptan para çekilemez” | EP, BDD | Yüksek |
+| H-03 | 0 TL yatırma reddedilmiyor | R-2.2 | EP-02, BVA-02, `para_yatirma.feature` — “Sıfır lira yatırma reddedilir” | EP, BVA, BDD | Orta |
 | H-04 | Bakiyenin tamamı çekilemiyor | R-3.4 | BVA-14 | BVA | Orta |
 | H-05 | PREMIUM hesapta günlük limite tam eşit (20.000 TL) çekim reddediliyor | R-3.5, Bölüm 3 | BVA-20, wb04 | BVA, beyaz kutu | Orta |
 | H-06 | Negatif başlangıç bakiyesiyle hesap açılabiliyor | R-1.4 | EP-10, BVA-22 | EP, BVA | Yüksek |
-| H-07 | Dondurulmuş veya kapalı hesaba transfer yapılabiliyor | R-4.3 | KT-03, KT-06 | karar tablosu | Kritik |
+| H-07 | Dondurulmuş veya kapalı hesaba transfer yapılabiliyor | R-4.3 | KT-03, KT-06, `transfer.feature` — “Dondurulmuş hesaba para gönderilemez” | karar tablosu, BDD | Kritik |
 | H-08 | Aynı hesaba transfer yapılabiliyor | R-4.4 | KT-04 | karar tablosu | Yüksek |
-| H-09 | Aylık faiz tam liraya kırpılıyor | R-8.3 | FZ-01, FZ-02, FZ-03, FZ-07, wb01, wb02 | EP, beyaz kutu | Kritik |
-| H-10 | Bakiyeli hesap kapatılabiliyor | R-7.2 | ST-04, ST-08 | durum geçişi | Kritik |
-| H-11 | Dondurulmuş hesap tekrar dondurulabiliyor | R-5.1 | ST-05 | durum geçişi | Yüksek |
+| H-09 | Aylık faiz tam liraya kırpılıyor | R-8.3 | FZ-01, FZ-02, FZ-03, FZ-07, wb01, wb02, `faiz.feature` — “Aylık faiz kuruşa yuvarlanıp bakiyeye eklenir” (Kuruş hassasiyeti gerektiren faiz örnekleri) | EP, beyaz kutu, BDD | Kritik |
+| H-10 | Bakiyeli hesap kapatılabiliyor | R-7.2 | ST-04, ST-08, `hesap_durumu.feature` — “Bakiyesi olan hesap kapatılamaz” | durum geçişi, BDD | Kritik |
+| H-11 | Dondurulmuş hesap tekrar dondurulabiliyor | R-5.1 | ST-05, `hesap_durumu.feature` — “Dondurulmuş hesap tekrar dondurulamaz” | durum geçişi, BDD | Yüksek |
 | H-12 | Günlük çekim limiti hiç sıfırlanmıyor, önceki günlerin çekimleri de sayılıyor | R-3.5, G-6 | zm01, zm02, zm03 | beyaz kutu | Yüksek |
 
 > Her hata için: ilgili gereksinim kodu (örn. R-3.4), hatayı yakalayan test metodu ve
 > beklenen / gerçekleşen davranışı belirtin.
 
-`wb` ile başlayan testler `AccountServiceWhiteBoxTest`, `zm` ile başlayanlar `ZamanKurallariTest`, diğerleri `AccountServiceBlackBoxTest` sınıfındadır.
+`wb` ile başlayan testler `AccountServiceWhiteBoxTest`, `zm` ile başlayanlar `ZamanKurallariTest`, diğer test metotları `AccountServiceBlackBoxTest` sınıfındadır. Cucumber senaryoları `src/test/resources/features` altındaki dosyalardadır.
 
 ### H-01: Reddedilen yatırma ve çekme denemeleri için FAILED kaydı oluşmuyor
 
@@ -367,8 +367,8 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 | İhlal edilen gereksinim | R-3.3 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli hesap aç, hesabı dondur, 100 TL çek |
 | Beklenen / Gerçekleşen | Çekim reddedilir, bakiye 1.000 kalır / Çekim yapılır, bakiye 900 olur ve geçmişe SUCCESS kaydı yazılır |
-| Yakalayan test | `ep07_withdraw_dondurulmusHesap_reddedilmeli` |
-| Hangi teknikle bulundu | EP |
+| Yakalayan test | `ep07_withdraw_dondurulmusHesap_reddedilmeli`, `para_cekme.feature` — “Dondurulmuş hesaptan para çekilemez” |
+| Hangi teknikle bulundu | EP, BDD |
 | Etki seviyesi | Yüksek |
 
 ### H-03: 0 TL yatırma reddedilmiyor
@@ -378,8 +378,8 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 | İhlal edilen gereksinim | R-2.2 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli hesap aç, 0 TL yatır |
 | Beklenen / Gerçekleşen | İstek reddedilir (geçersiz tutar) / Kabul edilir, geçmişe 0 TL'lik DEPOSIT/SUCCESS kaydı yazılır |
-| Yakalayan test | `ep02_deposit_sifirMiktar_reddedilmeli`, `bva02_deposit_sifirTL_sinirDegeri` |
-| Hangi teknikle bulundu | EP, BVA |
+| Yakalayan test | `ep02_deposit_sifirMiktar_reddedilmeli`, `bva02_deposit_sifirTL_sinirDegeri`, `para_yatirma.feature` — “Sıfır lira yatırma reddedilir” |
+| Hangi teknikle bulundu | EP, BVA, BDD |
 | Etki seviyesi | Orta |
 
 ### H-04: Bakiyenin tamamı çekilemiyor
@@ -422,8 +422,8 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 | İhlal edilen gereksinim | R-4.3 |
 | Yeniden üretme adımları | Her deneme için 1.000 TL bakiyeli aktif bir kaynak hesap aç. İlk denemede 200 TL bakiyeli hedefi dondur. İkinci denemede 0 TL bakiyeli hedefi kapat. Her hedefe `POST /api/transactions/transfer` ile 250 TL gönder. |
 | Beklenen / Gerçekleşen | İki istek de HTTP 409 ile reddedilir, bakiyeler ve durumlar korunur ve `TRANSFER/SUCCESS` kaydı oluşmaz / İki istek de HTTP 200 döndü. İlkinde kaynak 1.000 TL’den 750 TL’ye, hedef 200 TL’den 450 TL’ye geldi ve hedef `FROZEN` kaldı. İkincisinde kaynak 1.000 TL’den 750 TL’ye, hedef 0 TL’den 250 TL’ye geldi ve hedef `CLOSED` kaldı. |
-| Yakalayan test | `kt03_transfer_hedefDondurulmus_reddedilmeli`, `kt06_transfer_hedefKapali_reddedilmeli` |
-| Hangi teknikle bulundu | karar tablosu |
+| Yakalayan test | `kt03_transfer_hedefDondurulmus_reddedilmeli`, `kt06_transfer_hedefKapali_reddedilmeli`, `transfer.feature` — “Dondurulmuş hesaba para gönderilemez” |
+| Hangi teknikle bulundu | karar tablosu, BDD |
 | Etki seviyesi | Kritik |
 
 Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve başka hesaba aktarılamadığı için bir daha kullanılamaz (Bölüm 4.3).
@@ -446,8 +446,8 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-8.3 |
 | Yeniden üretme adımları | STANDARD hesaplarda 1.000, 2 ve 999 TL, PREMIUM hesaplarda 1.000, 2.500,50 ve 239,99 TL başlangıç bakiyesiyle aylık faiz uygula. |
 | Beklenen / Gerçekleşen | Faiz kuruşa yarım yukarı yuvarlanır / Faiz tam liraya kırpıldı. Beklenen / gerçekleşen bakiyeler: 1.002,50 / 1.002,00; 2,01 / 2,00; 1.001,50 / 1.001,00; 1.004,17 / 1.004,00; 2.510,92 / 2.510,50; 240,99 / 239,99 TL. |
-| Yakalayan test | `fz01_faiz_standartHesap`, `fz02_faiz_premiumHesap`, `fz03_faiz_yarimKurusYukariYuvarlanir`, `fz07_faiz_premiumHesapOndalikBakiye`, `wb01_calculateInterest_standartHesap_dogruFaiz`, `wb02_calculateInterest_premiumHesap_dogruFaiz` |
-| Hangi teknikle bulundu | EP, beyaz kutu |
+| Yakalayan test | `fz01_faiz_standartHesap`, `fz02_faiz_premiumHesap`, `fz03_faiz_yarimKurusYukariYuvarlanir`, `fz07_faiz_premiumHesapOndalikBakiye`, `wb01_calculateInterest_standartHesap_dogruFaiz`, `wb02_calculateInterest_premiumHesap_dogruFaiz`, `faiz.feature` — “Aylık faiz kuruşa yuvarlanıp bakiyeye eklenir” (Kuruş hassasiyeti gerektiren faiz örnekleri) |
+| Hangi teknikle bulundu | EP, beyaz kutu, BDD |
 | Etki seviyesi | Kritik |
 
 ### H-10: Bakiyeli hesap kapatılabiliyor
@@ -457,8 +457,8 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-7.2 |
 | Yeniden üretme adımları | 0,01, 100 ve 5.000 TL bakiyeli ACTIVE hesapları ve 100 TL bakiyeli FROZEN hesabı kapatmayı dene. |
 | Beklenen / Gerçekleşen | HTTP 409, durum ve bakiye korunur / API tüm denemelerde HTTP 200 döndü. Hesaplar CLOSED oldu ve bakiyeleri korundu. |
-| Yakalayan test | `st04_bakiyeliAktifHesapKapatilamaz`, `st08_bakiyeliDondurulmusHesapKapatilamaz` |
-| Hangi teknikle bulundu | durum geçişi |
+| Yakalayan test | `st04_bakiyeliAktifHesapKapatilamaz`, `st08_bakiyeliDondurulmusHesapKapatilamaz`, `hesap_durumu.feature` — “Bakiyesi olan hesap kapatılamaz” |
+| Hangi teknikle bulundu | durum geçişi, BDD |
 | Etki seviyesi | Kritik |
 
 ### H-11: Dondurulmuş hesap tekrar dondurulabiliyor
@@ -468,8 +468,8 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-5.1 |
 | Yeniden üretme adımları | Hesabı dondur ve dondurma isteğini tekrarla. |
 | Beklenen / Gerçekleşen | HTTP 409, hesap FROZEN kalır / API HTTP 200 döndü, hesap FROZEN kaldı. |
-| Yakalayan test | `st05_dondurulmusHesapTekrarDondurulamaz` |
-| Hangi teknikle bulundu | durum geçişi |
+| Yakalayan test | `st05_dondurulmusHesapTekrarDondurulamaz`, `hesap_durumu.feature` — “Dondurulmuş hesap tekrar dondurulamaz” |
+| Hangi teknikle bulundu | durum geçişi, BDD |
 | Etki seviyesi | Yüksek |
 
 ### H-12: Günlük çekim limiti hiç sıfırlanmıyor
