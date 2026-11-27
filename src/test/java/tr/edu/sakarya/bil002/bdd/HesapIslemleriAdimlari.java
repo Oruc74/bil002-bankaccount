@@ -45,6 +45,11 @@ public class HesapIslemleriAdimlari {
         accountService.freezeAccount(hesapNo(musteri));
     }
 
+    @Given("{word} adlı müşterinin hesabı kapalı")
+    public void hesabiKapat(String musteri) {
+        accountService.closeAccount(hesapNo(musteri));
+    }
+
     @When("{word} adlı müşteri hesabına {double} TL yatırır")
     public void paraYatir(String musteri, double tutar) {
         islemiDene(() -> accountService.deposit(hesapNo(musteri), tutar));
@@ -72,7 +77,7 @@ public class HesapIslemleriAdimlari {
 
     @When("{word} adlı müşteri hesabını kapatır")
     public void hesapKapatmayiDene(String musteri) {
-        islemiDene(() -> accountService.closeAccount(hesapNo(musteri)));
+        islemiDene(() -> hesabiKapat(musteri));
     }
 
     @When("{word} adlı müşterinin hesabına aylık faiz uygulanır")
@@ -95,7 +100,7 @@ public class HesapIslemleriAdimlari {
         assertInstanceOf(InsufficientBalanceException.class, islemHatasi);
     }
 
-    @Then("işlem dondurulmuş/bakiyeli hesap nedeniyle reddedilmeli")
+    @Then("işlem dondurulmuş/kapalı/bakiyeli hesap nedeniyle reddedilmeli")
     public void uygunOlmayanHesapReddedilmeli() {
         assertInstanceOf(InvalidAccountStateException.class, islemHatasi);
     }
