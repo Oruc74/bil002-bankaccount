@@ -82,6 +82,11 @@ public class AccountController {
         return ResponseEntity.ok(accountService.calculateInterest(accountNumber));
     }
 
+    @PostMapping("/{accountNumber}/upgrade")
+    public ResponseEntity<Account> upgrade(@PathVariable String accountNumber) {
+        return ResponseEntity.ok(accountService.upgradeAccount(accountNumber));
+    }
+
     @GetMapping("/{accountNumber}/transactions")
     public ResponseEntity<List<Transaction>> getTransactions(@PathVariable String accountNumber) {
         return ResponseEntity.ok(accountService.getTransactionHistory(accountNumber));

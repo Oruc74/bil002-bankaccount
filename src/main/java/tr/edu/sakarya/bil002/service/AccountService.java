@@ -177,6 +177,20 @@ public class AccountService {
         return account;
     }
 
+    @Transactional
+    public Account upgradeAccount(String accountNumber) {
+        Account account = getAccount(accountNumber);
+        requireActive(account);
+        if (!STANDARD.equals(account.getAccountType())) {
+            throw new InvalidAccountStateException("Sadece STANDARD hesaplar PREMIUM'a yükseltilebilir");
+        }
+        if (account.getBalance() < 1_000.0) {
+            throw new InsufficientBalanceException("Premium yükseltme için en az 1000 TL bakiye gerekir");
+        }
+        account.setAccountType(PREMIUM);
+        return accountRepository.save(account);
+    }
+
     @Transactional(readOnly = true)
     public List<Transaction> getTransactionHistory(String accountNumber) {
         getAccount(accountNumber);
