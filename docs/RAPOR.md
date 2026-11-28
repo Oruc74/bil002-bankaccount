@@ -408,11 +408,12 @@ API-08, API-27, API-28 ve API-40'ta durum kodu beklenenle aynı, ancak yanıt i�
 | H-11 | Dondurulmuş hesap tekrar dondurulabiliyor | R-5.1 | ST-05, `hesap_durumu.feature` — “Dondurulmuş hesap tekrar dondurulamaz”, it11, API-22 (Postman) | durum geçişi, BDD, API | Yüksek |
 | H-12 | Günlük çekim limiti hiç sıfırlanmıyor, önceki günlerin çekimleri de sayılıyor | R-3.5, G-6 | zm01, zm02, zm03 | beyaz kutu | Yüksek |
 | H-13 | Olmayan hesap sorgulanınca 404 yerine boş 200 dönüyor | R-10.2, Bölüm 7 | it01, API-31 (Postman) | API | Orta |
+| H-14 | Eşzamanlı para yatırmada bazı yatırmalar bakiyeye yansımıyor | R-2.5 | `performans/bankaccount-yuk-testi.jmx` | performans (eşzamanlılık) | Kritik |
 
 > Her hata için: ilgili gereksinim kodu (örn. R-3.4), hatayı yakalayan test metodu ve
 > beklenen / gerçekleşen davranışı belirtin.
 
-`wb` ile başlayan testler `AccountServiceWhiteBoxTest`, `zm` ile başlayanlar `ZamanKurallariTest`, diğer test metotları `AccountServiceBlackBoxTest` sınıfındadır. Cucumber senaryoları `src/test/resources/features` altındaki dosyalardadır. `it` ile başlayanlar `integration` paketindeki sınıflardadır. API-xx istekleri docs/postman altındaki koleksiyondadır.
+`wb` ile başlayan testler `AccountServiceWhiteBoxTest`, `zm` ile başlayanlar `ZamanKurallariTest`, diğer test metotları `AccountServiceBlackBoxTest` sınıfındadır. Cucumber senaryoları `src/test/resources/features` altındaki dosyalardadır. `it` ile başlayanlar `integration` paketindeki sınıflardadır. API-xx istekleri docs/postman altındaki koleksiyondadır. Eşzamanlılık bulguları performans klasöründeki JMeter planıyla elde edildi.
 
 ### H-01: Reddedilen yatırma ve çekme denemeleri için FAILED kaydı oluşmuyor
 
@@ -562,6 +563,19 @@ Kök neden: `TransactionService.getDailyWithdrawalTotal` hesabın bütün başar
 | Etki seviyesi | Orta |
 
 Kök neden: `AccountController.getAccount` hesap yoksa `ResponseEntity.ok(null)` döndürüyor (`AccountController.java:50`); aynı numaranın işlem geçmişi isteği doğru şekilde 404 dönüyor.
+
+### H-14: Eşzamanlı para yatırmada bazı yatırmalar bakiyeye yansımıyor
+
+| Alan | Değer |
+|------|-------|
+| İhlal edilen gereksinim | R-2.5 |
+| Yeniden üretme adımları | 0 TL bakiyeli STANDARD hesap aç. 50 eşzamanlı kullanıcı 60 saniye boyunca aynı hesaba 1'er TL yatırsın (`performans/bankaccount-yuk-testi.jmx`). Test bitince bakiyeyi ve işlem geçmişini sorgula. |
+| Beklenen / Gerçekleşen | 6.363 başarılı yatırma sonrası bakiye 6.363 TL olmalı / Bakiye 4.465 TL, 1.898 TL kayıp. Geçmişte 6.363 `DEPOSIT/SUCCESS` kaydı var, bütün istekler 200 döndü. |
+| Yakalayan test | `performans/bankaccount-yuk-testi.jmx` (sonuç: `performans/sonuclar/sonuc.csv`, canlı servis, 28.11.2026) |
+| Hangi teknikle bulundu | performans (eşzamanlılık) |
+| Etki seviyesi | Kritik |
+
+Tek istekle görülmez, yalnız eşzamanlı yükte ortaya çıkar. Yerel uygulamada 10 kullanıcı ve 5 saniyelik denemede de tekrarlandı (120 başarılı yatırma, bakiye 97 TL). Kök neden: `AccountService.deposit` hesabı okuyup tutarı ekleyip kaydediyor. Kilit veya sürüm (`@Version`) kontrolü olmadığı için eşzamanlı istekler birbirinin güncellemesinin üzerine yazıyor.
 
 <!--
 Her hata için aşağıdaki kayıt kullanılacak (Hata No H-01, H-02 ... ve testteki "Rapor: H-xx" yorumuyla aynı):
