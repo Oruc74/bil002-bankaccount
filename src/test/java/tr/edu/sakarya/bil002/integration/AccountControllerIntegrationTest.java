@@ -2,6 +2,7 @@ package tr.edu.sakarya.bil002.integration;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -388,5 +389,12 @@ class AccountControllerIntegrationTest {
             jsonPath("$.message").isNotEmpty().match(sonuc);
             jsonPath("$.path").value(yol).match(sonuc);
         };
+    }
+
+    @Test
+    void it30_hesapListesi_desteklenmeyenMetot_405Donmeli() throws Exception {
+        // GET /api/accounts uç noktasının hatalı istek testi. HTTP standardında desteklenmeyen metot 405 döner.
+        mockMvc.perform(delete("/api/accounts"))
+                .andExpect(hataYaniti(HttpStatus.METHOD_NOT_ALLOWED, "/api/accounts"));
     }
 }
