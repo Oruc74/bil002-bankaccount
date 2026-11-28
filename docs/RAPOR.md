@@ -299,11 +299,75 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 ## 6. Entegrasyon ve API Testleri
 (Postman koleksiyonu özeti)
 
-> Durum: Gün 12–13'te doldurulacak.
+### Entegrasyon testleri (MockMvc)
+
+`AccountControllerIntegrationTest` (it01–it23) ve `TransactionControllerIntegrationTest` (it24–it29) HTTP kodunu, JSON gövdesini ve Bölüm 7 hata alanlarını doğruluyor. Yükseltme özelliği `AccountUpgradeIntegrationTest` (TDD, 7 senaryo) ile sınanıyor. Bilinen hatalar nedeniyle 9 test başarısız: it01 (H-13), it04 (H-06), it07 (H-03), it08 (H-04), it09 (H-02), it11 (H-11), it15 (H-10), it25 (H-07), it28 (H-08). API belgesinde `GET /api/accounts` için hata durumu tanımlanmıyor.
+
+### Postman koleksiyonu
+
+Koleksiyon dosyası `docs/postman/bankaccount.postman_collection.json`. İstekler adresi `{{baseUrl}}` ortam değişkeninden alıyor. Her senaryo yeni hesap açıyor ve hesap numarasını `pm.environment.set` ile sonraki isteklere taşıyor. Koleksiyonda 51 kontrol isteği (API-01–API-51), 67 hazırlık ve 31 doğrulama isteği var (toplam 149). Ortam dosyası token içerdiği için repoya konmadı.
+
+### Canlı servis kabul testi
+
+Koleksiyon 28.11.2026'da canlı servis örneğine karşı Newman 6.2.1 (Postman'in komut satırı çalıştırıcısı) ile çalıştırıldı. 149 istekte 298 `pm.test` doğrulaması yapıldı ve 28 doğrulama başarısız oldu. 51 kontrol isteğinin 37'si geçti, 14'ü kaldı. Yerel uygulamada aynı koleksiyon aynı sonucu verdi.
+
+API-16, API-19 ve API-26 sonrasındaki doğrulama istekleri bakiye veya durumun değiştiğini gösterdi (G-4). Bu çalıştırmada yalnız canlı serviste görülen bir hata çıkmadı. Eşzamanlı davranış performans ve eşzamanlılık testlerinde ayrıca denenecek. Günlük limitin gün değişince sıfırlanması (H-12) canlı serviste denenemedi, çünkü sunucu saati değiştirilemiyor.
 
 | Test ID | Metot | Endpoint | Beklenen Kod | Gerçekleşen Kod | Sonuç |
 |---------|-------|----------|--------------|-----------------|-------|
-| API-01 | | | | | ✔ / ✘ |
+| API-01 | POST | `/api/accounts` | 201 | 201 | ✔ |
+| API-02 | POST | `/api/accounts` | 201 | 201 | ✔ |
+| API-03 | POST | `/api/accounts` | 400 | 201 | ✘ (H-06) |
+| API-04 | POST | `/api/accounts` | 400 | 400 | ✔ |
+| API-05 | POST | `/api/accounts` | 400 | 400 | ✔ |
+| API-06 | POST | `/api/accounts/{no}/deposit` | 200 | 200 | ✔ |
+| API-07 | POST | `/api/accounts/{no}/deposit` | 422 | 422 | ✔ |
+| API-08 | GET | `/api/accounts/{no}/transactions` | 200 | 200 | ✘ (H-01) |
+| API-09 | POST | `/api/accounts/{no}/deposit` | 400 | 200 | ✘ (H-03) |
+| API-10 | POST | `/api/accounts/{no}/deposit` | 409 | 409 | ✔ |
+| API-11 | POST | `/api/accounts/{no}/withdraw` | 200 | 200 | ✔ |
+| API-12 | POST | `/api/accounts/{no}/withdraw` | 422 | 422 | ✔ |
+| API-13 | POST | `/api/accounts/{no}/withdraw` | 422 | 422 | ✔ |
+| API-14 | POST | `/api/accounts/{no}/withdraw` | 200 | 422 | ✘ (H-05) |
+| API-15 | POST | `/api/accounts/{no}/withdraw` | 200 | 422 | ✘ (H-04) |
+| API-16 | POST | `/api/accounts/{no}/withdraw` | 409 | 200 | ✘ (H-02) |
+| API-17 | POST | `/api/accounts/{no}/withdraw` | 422 | 422 | ✔ |
+| API-18 | POST | `/api/transactions/transfer` | 200 | 200 | ✔ |
+| API-19 | POST | `/api/transactions/transfer` | 409 | 200 | ✘ (H-07) |
+| API-20 | POST | `/api/transactions/transfer` | 400 | 200 | ✘ (H-08) |
+| API-21 | POST | `/api/accounts/{no}/freeze` | 200 | 200 | ✔ |
+| API-22 | POST | `/api/accounts/{no}/freeze` | 409 | 200 | ✘ (H-11) |
+| API-23 | POST | `/api/accounts/{no}/unfreeze` | 200 | 200 | ✔ |
+| API-24 | POST | `/api/accounts/{no}/unfreeze` | 409 | 409 | ✔ |
+| API-25 | POST | `/api/accounts/{no}/close` | 200 | 200 | ✔ |
+| API-26 | POST | `/api/accounts/{no}/close` | 409 | 200 | ✘ (H-10) |
+| API-27 | POST | `/api/accounts/{no}/interest` | 200 | 200 | ✘ (H-09) |
+| API-28 | POST | `/api/accounts/{no}/interest` | 200 | 200 | ✘ (H-09) |
+| API-29 | POST | `/api/accounts/{no}/interest` | 409 | 409 | ✔ |
+| API-30 | GET | `/api/accounts/{no}` | 200 | 200 | ✔ |
+| API-31 | GET | `/api/accounts/0000000000` | 404 | 200 | ✘ (H-13) |
+| API-32 | GET | `/api/accounts/{no}/transactions` | 200 | 200 | ✔ |
+| API-33 | GET | `/api/accounts/{no}/transactions` | 200 | 200 | ✔ |
+| API-34 | GET | `/api/accounts/0000000000/transactions` | 404 | 404 | ✔ |
+| API-35 | GET | `/api/accounts` | 200 | 200 | ✔ |
+| API-36 | GET | `/api/transactions/{no}` | 200 | 200 | ✔ |
+| API-37 | POST | `/api/accounts/0000000000/deposit` | 404 | 404 | ✔ |
+| API-38 | POST | `/api/accounts/0000000000/withdraw` | 404 | 404 | ✔ |
+| API-39 | POST | `/api/accounts/{no}/withdraw` | 400 | 400 | ✔ |
+| API-40 | GET | `/api/accounts/{no}/transactions` | 200 | 200 | ✘ (H-01) |
+| API-41 | POST | `/api/transactions/transfer` | 400 | 400 | ✔ |
+| API-42 | POST | `/api/transactions/transfer` | 404 | 404 | ✔ |
+| API-43 | POST | `/api/transactions/transfer` | 422 | 422 | ✔ |
+| API-44 | POST | `/api/transactions/transfer` | 200 | 200 | ✔ |
+| API-45 | GET | `/api/accounts/{no}/transactions` | 200 | 200 | ✔ |
+| API-46 | POST | `/api/accounts/{no}/withdraw` | 200 | 200 | ✔ |
+| API-47 | POST | `/api/accounts/{no}/deposit` | 200 | 200 | ✔ |
+| API-48 | POST | `/api/accounts/{no}/deposit` | 422 | 422 | ✔ |
+| API-49 | POST | `/api/accounts/{no}/close` | 409 | 409 | ✔ |
+| API-50 | POST | `/api/accounts/{no}/unfreeze` | 409 | 409 | ✔ |
+| API-51 | GET | `/api/accounts/{no}/transactions` | 200 | 200 | ✔ |
+
+API-08, API-27, API-28 ve API-40'ta durum kodu beklenenle aynı, ancak yanıt içeriği (FAILED kaydı, faizli bakiye) gereksinimden farklı.
 
 ---
 
@@ -331,24 +395,24 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 
 | Hata No | Açıklama | İhlal Edilen Kural | Yakalayan Test | Hangi Teknikle Bulundu | Etki Seviyesi |
 |---------|----------|--------------------|----------------|------------------------|---------------|
-| H-01 | Reddedilen yatırma ve çekme denemeleri için FAILED kaydı oluşmuyor | R-2.7, R-3.8, Bölüm 6 | EP-03, EP-04, EP-05, EP-15, BVA-01, BVA-06, BVA-09, BVA-10, BVA-11, BVA-15, BVA-18, BVA-21, EP-18, IG-03 | EP, BVA | Düşük |
-| H-02 | Dondurulmuş hesaptan para çekilebiliyor | R-3.3 | EP-07, `para_cekme.feature` — “Dondurulmuş hesaptan para çekilemez”, it09 | EP, BDD, API | Yüksek |
-| H-03 | 0 TL yatırma reddedilmiyor | R-2.2 | EP-02, BVA-02, `para_yatirma.feature` — “Sıfır lira yatırma reddedilir”, it07 | EP, BVA, BDD, API | Orta |
-| H-04 | Bakiyenin tamamı çekilemiyor | R-3.4 | BVA-14, it08 | BVA, API | Orta |
-| H-05 | PREMIUM hesapta günlük limite tam eşit (20.000 TL) çekim reddediliyor | R-3.5, Bölüm 3 | BVA-20, wb04 | BVA, beyaz kutu | Orta |
-| H-06 | Negatif başlangıç bakiyesiyle hesap açılabiliyor | R-1.4 | EP-10, BVA-22, it04 | EP, BVA, API | Yüksek |
-| H-07 | Dondurulmuş veya kapalı hesaba transfer yapılabiliyor | R-4.3 | KT-03, KT-06, `transfer.feature` — “Dondurulmuş hesaba para gönderilemez”, it25 | karar tablosu, BDD, API | Kritik |
-| H-08 | Aynı hesaba transfer yapılabiliyor | R-4.4 | KT-04, it28 | karar tablosu, API | Yüksek |
-| H-09 | Aylık faiz tam liraya kırpılıyor | R-8.3 | FZ-01, FZ-02, FZ-03, FZ-07, wb01, wb02, `faiz.feature` — “Aylık faiz kuruşa yuvarlanıp bakiyeye eklenir” (Kuruş hassasiyeti gerektiren faiz örnekleri) | EP, beyaz kutu, BDD | Kritik |
-| H-10 | Bakiyeli hesap kapatılabiliyor | R-7.2 | ST-04, ST-08, `hesap_durumu.feature` — “Bakiyesi olan hesap kapatılamaz”, it15 | durum geçişi, BDD, API | Kritik |
-| H-11 | Dondurulmuş hesap tekrar dondurulabiliyor | R-5.1 | ST-05, `hesap_durumu.feature` — “Dondurulmuş hesap tekrar dondurulamaz”, it11 | durum geçişi, BDD, API | Yüksek |
+| H-01 | Reddedilen yatırma ve çekme denemeleri için FAILED kaydı oluşmuyor | R-2.7, R-3.8, Bölüm 6 | EP-03, EP-04, EP-05, EP-15, BVA-01, BVA-06, BVA-09, BVA-10, BVA-11, BVA-15, BVA-18, BVA-21, EP-18, IG-03, API-08 (Postman), API-40 (Postman) | EP, BVA, API | Düşük |
+| H-02 | Dondurulmuş hesaptan para çekilebiliyor | R-3.3 | EP-07, `para_cekme.feature` — “Dondurulmuş hesaptan para çekilemez”, it09, API-16 (Postman) | EP, BDD, API | Yüksek |
+| H-03 | 0 TL yatırma reddedilmiyor | R-2.2 | EP-02, BVA-02, `para_yatirma.feature` — “Sıfır lira yatırma reddedilir”, it07, API-09 (Postman) | EP, BVA, BDD, API | Orta |
+| H-04 | Bakiyenin tamamı çekilemiyor | R-3.4 | BVA-14, it08, API-15 (Postman) | BVA, API | Orta |
+| H-05 | PREMIUM hesapta günlük limite tam eşit (20.000 TL) çekim reddediliyor | R-3.5, Bölüm 3 | BVA-20, wb04, API-14 (Postman) | BVA, beyaz kutu, API | Orta |
+| H-06 | Negatif başlangıç bakiyesiyle hesap açılabiliyor | R-1.4 | EP-10, BVA-22, it04, API-03 (Postman) | EP, BVA, API | Yüksek |
+| H-07 | Dondurulmuş veya kapalı hesaba transfer yapılabiliyor | R-4.3 | KT-03, KT-06, `transfer.feature` — “Dondurulmuş hesaba para gönderilemez”, it25, API-19 (Postman) | karar tablosu, BDD, API | Kritik |
+| H-08 | Aynı hesaba transfer yapılabiliyor | R-4.4 | KT-04, it28, API-20 (Postman) | karar tablosu, API | Yüksek |
+| H-09 | Aylık faiz tam liraya kırpılıyor | R-8.3 | FZ-01, FZ-02, FZ-03, FZ-07, wb01, wb02, `faiz.feature` — “Aylık faiz kuruşa yuvarlanıp bakiyeye eklenir” (Kuruş hassasiyeti gerektiren faiz örnekleri), API-27 (Postman), API-28 (Postman) | EP, beyaz kutu, BDD, API | Kritik |
+| H-10 | Bakiyeli hesap kapatılabiliyor | R-7.2 | ST-04, ST-08, `hesap_durumu.feature` — “Bakiyesi olan hesap kapatılamaz”, it15, API-26 (Postman) | durum geçişi, BDD, API | Kritik |
+| H-11 | Dondurulmuş hesap tekrar dondurulabiliyor | R-5.1 | ST-05, `hesap_durumu.feature` — “Dondurulmuş hesap tekrar dondurulamaz”, it11, API-22 (Postman) | durum geçişi, BDD, API | Yüksek |
 | H-12 | Günlük çekim limiti hiç sıfırlanmıyor, önceki günlerin çekimleri de sayılıyor | R-3.5, G-6 | zm01, zm02, zm03 | beyaz kutu | Yüksek |
-| H-13 | Olmayan hesap sorgulanınca 404 yerine boş 200 dönüyor | R-10.2, Bölüm 7 | it01 | API | Orta |
+| H-13 | Olmayan hesap sorgulanınca 404 yerine boş 200 dönüyor | R-10.2, Bölüm 7 | it01, API-31 (Postman) | API | Orta |
 
 > Her hata için: ilgili gereksinim kodu (örn. R-3.4), hatayı yakalayan test metodu ve
 > beklenen / gerçekleşen davranışı belirtin.
 
-`wb` ile başlayan testler `AccountServiceWhiteBoxTest`, `zm` ile başlayanlar `ZamanKurallariTest`, diğer test metotları `AccountServiceBlackBoxTest` sınıfındadır. Cucumber senaryoları `src/test/resources/features` altındaki dosyalardadır. `it` ile başlayanlar `integration` paketindeki sınıflardadır.
+`wb` ile başlayan testler `AccountServiceWhiteBoxTest`, `zm` ile başlayanlar `ZamanKurallariTest`, diğer test metotları `AccountServiceBlackBoxTest` sınıfındadır. Cucumber senaryoları `src/test/resources/features` altındaki dosyalardadır. `it` ile başlayanlar `integration` paketindeki sınıflardadır. API-xx istekleri docs/postman altındaki koleksiyondadır.
 
 ### H-01: Reddedilen yatırma ve çekme denemeleri için FAILED kaydı oluşmuyor
 
@@ -357,8 +421,8 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 | İhlal edilen gereksinim | R-2.7, R-3.8, Bölüm 6 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli hesap aç, -100 TL yatırmayı (veya 1.000,01 TL çekmeyi) dene, işlem geçmişine bak |
 | Beklenen / Gerçekleşen | İstek reddedilir ve FAILED kaydı oluşur / İstek reddedilir, bakiye değişmez ama reddedilen deneme için FAILED kaydı oluşmaz |
-| Yakalayan test | `ep03_deposit_negatifMiktar_reddedilmeli`, `ep04_deposit_dondurulmusHesap_reddedilmeli`, `ep05_deposit_kapaliHesap_reddedilmeli`, `ep15_withdraw_negatifMiktar_reddedilmeli`, `bva01_deposit_eksiBirKurus_reddedilmeli`, `bva06_deposit_standartMaksimumuAsan_10000_01TL`, `bva09_deposit_premiumMaksimumuAsan_50000_01TL`, `bva10_withdraw_eksiBirKurus_reddedilmeli`, `bva11_withdraw_sifirTL_reddedilmeli`, `bva15_withdraw_bakiyedenFazla_reddedilmeli`, `bva18_withdraw_standartGunlukToplamiAsan_5000_01TL`, `bva21_withdraw_premiumGunlukLimitiAsan_20000_01TL`, `ep18_withdraw_kapaliHesap_reddedilmeli`, `ig03_gecmis_basariliVeReddedilenKayitlarDoner` |
-| Hangi teknikle bulundu | EP, BVA |
+| Yakalayan test | `ep03_deposit_negatifMiktar_reddedilmeli`, `ep04_deposit_dondurulmusHesap_reddedilmeli`, `ep05_deposit_kapaliHesap_reddedilmeli`, `ep15_withdraw_negatifMiktar_reddedilmeli`, `bva01_deposit_eksiBirKurus_reddedilmeli`, `bva06_deposit_standartMaksimumuAsan_10000_01TL`, `bva09_deposit_premiumMaksimumuAsan_50000_01TL`, `bva10_withdraw_eksiBirKurus_reddedilmeli`, `bva11_withdraw_sifirTL_reddedilmeli`, `bva15_withdraw_bakiyedenFazla_reddedilmeli`, `bva18_withdraw_standartGunlukToplamiAsan_5000_01TL`, `bva21_withdraw_premiumGunlukLimitiAsan_20000_01TL`, `ep18_withdraw_kapaliHesap_reddedilmeli`, `ig03_gecmis_basariliVeReddedilenKayitlarDoner`, API-08 (Postman), API-40 (Postman) |
+| Hangi teknikle bulundu | EP, BVA, API |
 | Etki seviyesi | Düşük |
 
 ### H-02: Dondurulmuş hesaptan para çekilebiliyor
@@ -368,7 +432,7 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 | İhlal edilen gereksinim | R-3.3 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli hesap aç, hesabı dondur, 100 TL çek |
 | Beklenen / Gerçekleşen | Çekim reddedilir, bakiye 1.000 kalır / Çekim yapılır, bakiye 900 olur ve geçmişe SUCCESS kaydı yazılır |
-| Yakalayan test | `ep07_withdraw_dondurulmusHesap_reddedilmeli`, `para_cekme.feature` — “Dondurulmuş hesaptan para çekilemez”, `it09_withdraw_dondurulmusHesap_409Donmeli` |
+| Yakalayan test | `ep07_withdraw_dondurulmusHesap_reddedilmeli`, `para_cekme.feature` — “Dondurulmuş hesaptan para çekilemez”, `it09_withdraw_dondurulmusHesap_409Donmeli`, API-16 (Postman) |
 | Hangi teknikle bulundu | EP, BDD, API |
 | Etki seviyesi | Yüksek |
 
@@ -379,7 +443,7 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 | İhlal edilen gereksinim | R-2.2 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli hesap aç, 0 TL yatır |
 | Beklenen / Gerçekleşen | İstek reddedilir (geçersiz tutar) / Kabul edilir, geçmişe 0 TL'lik DEPOSIT/SUCCESS kaydı yazılır |
-| Yakalayan test | `ep02_deposit_sifirMiktar_reddedilmeli`, `bva02_deposit_sifirTL_sinirDegeri`, `para_yatirma.feature` — “Sıfır lira yatırma reddedilir”, `it07_deposit_sifirTutar_400Donmeli` |
+| Yakalayan test | `ep02_deposit_sifirMiktar_reddedilmeli`, `bva02_deposit_sifirTL_sinirDegeri`, `para_yatirma.feature` — “Sıfır lira yatırma reddedilir”, `it07_deposit_sifirTutar_400Donmeli`, API-09 (Postman) |
 | Hangi teknikle bulundu | EP, BVA, BDD, API |
 | Etki seviyesi | Orta |
 
@@ -390,7 +454,7 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 | İhlal edilen gereksinim | R-3.4 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli hesap aç, 1.000 TL çek |
 | Beklenen / Gerçekleşen | Çekim başarılı, bakiye 0 / "Yetersiz bakiye" hatası, bakiye 1.000 kalır |
-| Yakalayan test | `bva14_withdraw_tamBakiye_cekilebilmeli`, `it08_withdraw_tamBakiye_200Donmeli` |
+| Yakalayan test | `bva14_withdraw_tamBakiye_cekilebilmeli`, `it08_withdraw_tamBakiye_200Donmeli`, API-15 (Postman) |
 | Hangi teknikle bulundu | BVA, API |
 | Etki seviyesi | Orta |
 
@@ -401,8 +465,8 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 | İhlal edilen gereksinim | R-3.5, Bölüm 3 |
 | Yeniden üretme adımları | 30.000 TL bakiyeli PREMIUM hesap aç, 20.000 TL çek (veya önce 12.000, sonra 8.000 TL çek) |
 | Beklenen / Gerçekleşen | Toplam 20.000 TL çekilebilir / Tek seferde 20.000 TL "Günlük çekim limiti aşıldı" hatasıyla reddedilir; 12.000 + 8.000 denemesinde ikinci çekim 422 döner, bakiye 18.000 TL kalır |
-| Yakalayan test | `bva20_withdraw_premiumGunlukLimit_20000TL`, `wb04_withdraw_gunlukLimitKontrol_premium` |
-| Hangi teknikle bulundu | BVA, beyaz kutu |
+| Yakalayan test | `bva20_withdraw_premiumGunlukLimit_20000TL`, `wb04_withdraw_gunlukLimitKontrol_premium`, API-14 (Postman) |
+| Hangi teknikle bulundu | BVA, beyaz kutu, API |
 | Etki seviyesi | Orta |
 
 ### H-06: Negatif başlangıç bakiyesiyle hesap açılabiliyor
@@ -412,7 +476,7 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 | İhlal edilen gereksinim | R-1.4 |
 | Yeniden üretme adımları | Başlangıç bakiyesi -0,01 (veya -100) ile hesap aç |
 | Beklenen / Gerçekleşen | İstek reddedilir / Hesap negatif bakiyeyle ACTIVE olarak açılır |
-| Yakalayan test | `ep10_createAccount_negatifBakiye_reddedilmeli`, `bva22_createAccount_eksiBirKurus_reddedilmeli`, `it04_createAccount_negatifBakiye_400Donmeli` |
+| Yakalayan test | `ep10_createAccount_negatifBakiye_reddedilmeli`, `bva22_createAccount_eksiBirKurus_reddedilmeli`, `it04_createAccount_negatifBakiye_400Donmeli`, API-03 (Postman) |
 | Hangi teknikle bulundu | EP, BVA, API |
 | Etki seviyesi | Yüksek |
 
@@ -423,7 +487,7 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 | İhlal edilen gereksinim | R-4.3 |
 | Yeniden üretme adımları | Her deneme için 1.000 TL bakiyeli aktif bir kaynak hesap aç. İlk denemede 200 TL bakiyeli hedefi dondur. İkinci denemede 0 TL bakiyeli hedefi kapat. Her hedefe `POST /api/transactions/transfer` ile 250 TL gönder. |
 | Beklenen / Gerçekleşen | İki istek de HTTP 409 ile reddedilir, bakiyeler ve durumlar korunur ve `TRANSFER/SUCCESS` kaydı oluşmaz / İki istek de HTTP 200 döndü. İlkinde kaynak 1.000 TL’den 750 TL’ye, hedef 200 TL’den 450 TL’ye geldi ve hedef `FROZEN` kaldı. İkincisinde kaynak 1.000 TL’den 750 TL’ye, hedef 0 TL’den 250 TL’ye geldi ve hedef `CLOSED` kaldı. |
-| Yakalayan test | `kt03_transfer_hedefDondurulmus_reddedilmeli`, `kt06_transfer_hedefKapali_reddedilmeli`, `transfer.feature` — “Dondurulmuş hesaba para gönderilemez”, `it25_transfer_dondurulmusHedef_409Donmeli` |
+| Yakalayan test | `kt03_transfer_hedefDondurulmus_reddedilmeli`, `kt06_transfer_hedefKapali_reddedilmeli`, `transfer.feature` — “Dondurulmuş hesaba para gönderilemez”, `it25_transfer_dondurulmusHedef_409Donmeli`, API-19 (Postman) |
 | Hangi teknikle bulundu | karar tablosu, BDD, API |
 | Etki seviyesi | Kritik |
 
@@ -436,7 +500,7 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-4.4 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli aktif bir hesap aç. `POST /api/transactions/transfer` isteğinde kaynak ve hedef olarak aynı hesap numarasını kullan ve 250 TL gönder. |
 | Beklenen / Gerçekleşen | İstek HTTP 400 ile reddedilir, bakiye ve durum korunur ve `TRANSFER/SUCCESS` kaydı oluşmaz / İstek HTTP 200 döndü, bakiye 1.000 TL kaldı. Geçmişte `balanceAfter` değerleri 750 TL ve 1.000 TL olan iki `TRANSFER/SUCCESS` kaydı oluştu. |
-| Yakalayan test | `kt04_transfer_ayniHesap_reddedilmeli`, `it28_transfer_ayniHesap_400Donmeli` |
+| Yakalayan test | `kt04_transfer_ayniHesap_reddedilmeli`, `it28_transfer_ayniHesap_400Donmeli`, API-20 (Postman) |
 | Hangi teknikle bulundu | karar tablosu, API |
 | Etki seviyesi | Yüksek |
 
@@ -447,8 +511,8 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-8.3 |
 | Yeniden üretme adımları | STANDARD hesaplarda 1.000, 2 ve 999 TL, PREMIUM hesaplarda 1.000, 2.500,50 ve 239,99 TL başlangıç bakiyesiyle aylık faiz uygula. |
 | Beklenen / Gerçekleşen | Faiz kuruşa yarım yukarı yuvarlanır / Faiz tam liraya kırpıldı. Beklenen / gerçekleşen bakiyeler: 1.002,50 / 1.002,00; 2,01 / 2,00; 1.001,50 / 1.001,00; 1.004,17 / 1.004,00; 2.510,92 / 2.510,50; 240,99 / 239,99 TL. |
-| Yakalayan test | `fz01_faiz_standartHesap`, `fz02_faiz_premiumHesap`, `fz03_faiz_yarimKurusYukariYuvarlanir`, `fz07_faiz_premiumHesapOndalikBakiye`, `wb01_calculateInterest_standartHesap_dogruFaiz`, `wb02_calculateInterest_premiumHesap_dogruFaiz`, `faiz.feature` — “Aylık faiz kuruşa yuvarlanıp bakiyeye eklenir” (Kuruş hassasiyeti gerektiren faiz örnekleri) |
-| Hangi teknikle bulundu | EP, beyaz kutu, BDD |
+| Yakalayan test | `fz01_faiz_standartHesap`, `fz02_faiz_premiumHesap`, `fz03_faiz_yarimKurusYukariYuvarlanir`, `fz07_faiz_premiumHesapOndalikBakiye`, `wb01_calculateInterest_standartHesap_dogruFaiz`, `wb02_calculateInterest_premiumHesap_dogruFaiz`, `faiz.feature` — “Aylık faiz kuruşa yuvarlanıp bakiyeye eklenir” (Kuruş hassasiyeti gerektiren faiz örnekleri), API-27 (Postman), API-28 (Postman) |
+| Hangi teknikle bulundu | EP, beyaz kutu, BDD, API |
 | Etki seviyesi | Kritik |
 
 ### H-10: Bakiyeli hesap kapatılabiliyor
@@ -458,7 +522,7 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-7.2 |
 | Yeniden üretme adımları | 0,01, 100 ve 5.000 TL bakiyeli ACTIVE hesapları ve 100 TL bakiyeli FROZEN hesabı kapatmayı dene. |
 | Beklenen / Gerçekleşen | HTTP 409, durum ve bakiye korunur / API tüm denemelerde HTTP 200 döndü. Hesaplar CLOSED oldu ve bakiyeleri korundu. |
-| Yakalayan test | `st04_bakiyeliAktifHesapKapatilamaz`, `st08_bakiyeliDondurulmusHesapKapatilamaz`, `hesap_durumu.feature` — “Bakiyesi olan hesap kapatılamaz”, `it15_close_bakiyeliHesap_409Donmeli` |
+| Yakalayan test | `st04_bakiyeliAktifHesapKapatilamaz`, `st08_bakiyeliDondurulmusHesapKapatilamaz`, `hesap_durumu.feature` — “Bakiyesi olan hesap kapatılamaz”, `it15_close_bakiyeliHesap_409Donmeli`, API-26 (Postman) |
 | Hangi teknikle bulundu | durum geçişi, BDD, API |
 | Etki seviyesi | Kritik |
 
@@ -469,7 +533,7 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-5.1 |
 | Yeniden üretme adımları | Hesabı dondur ve dondurma isteğini tekrarla. |
 | Beklenen / Gerçekleşen | HTTP 409, hesap FROZEN kalır / API HTTP 200 döndü, hesap FROZEN kaldı. |
-| Yakalayan test | `st05_dondurulmusHesapTekrarDondurulamaz`, `hesap_durumu.feature` — “Dondurulmuş hesap tekrar dondurulamaz”, `it11_freeze_zatenDondurulmus_409Donmeli` |
+| Yakalayan test | `st05_dondurulmusHesapTekrarDondurulamaz`, `hesap_durumu.feature` — “Dondurulmuş hesap tekrar dondurulamaz”, `it11_freeze_zatenDondurulmus_409Donmeli`, API-22 (Postman) |
 | Hangi teknikle bulundu | durum geçişi, BDD, API |
 | Etki seviyesi | Yüksek |
 
@@ -493,7 +557,7 @@ Kök neden: `TransactionService.getDailyWithdrawalTotal` hesabın bütün başar
 | İhlal edilen gereksinim | R-10.2, Bölüm 7 |
 | Yeniden üretme adımları | `GET /api/accounts/0000000000` isteği gönder |
 | Beklenen / Gerçekleşen | 404 Not Found ve Bölüm 7 hata gövdesi / 200 OK, boş gövde (`Content-Length: 0`) |
-| Yakalayan test | `it01_getAccount_bulunamayan_404Donmeli` |
+| Yakalayan test | `it01_getAccount_bulunamayan_404Donmeli`, API-31 (Postman) |
 | Hangi teknikle bulundu | API |
 | Etki seviyesi | Orta |
 
