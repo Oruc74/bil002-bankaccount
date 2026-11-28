@@ -25,6 +25,7 @@ Bu rapor BYS üzerinden teslim edilir. Aşağıdaki Bölüm 1–10 Kısım 1'i, 
 | 2 | Kod incelemesi (elle) | `AccountService.java:171` | Faiz `balance.longValue()` ve tam sayı bölmesiyle hesaplanıyor, kuruşlar kayboluyor | Kritik | H-09. `wb01` ve `wb02` testleriyle kanıtlandı. |
 | 3 | Kod incelemesi (elle) | `AccountService.java:193` | `validateTransferParties` hedef hesabı parametre olarak alıyor ama hiç kontrol etmiyor | Kritik | H-07. `kt03` ve `kt06` testleriyle kanıtlandı. |
 | 4 | Kod incelemesi (elle) | `TransactionService.java:41-49` | Günlük çekim toplamında tarih filtresi yok, bütün geçmiş toplanıyor | Yüksek | H-12. `zm01`, `zm02`, `zm03` testleriyle kanıtlandı. |
+| 5 | Kod incelemesi (elle) | `AccountService.java:242-245`, `Account.java:24-25` | Hesap numarası rastgele üretiliyor; kodda tekrar kontrolü, veritabanında unique kısıtı yok (R-1.5) | Orta | 500 eşzamanlı hesap açmada tekrar çıkmadı, bu yüzden testle gösterilemedi; benzersizlik garanti değil. |
 
 ---
 
@@ -409,11 +410,13 @@ API-08, API-27, API-28 ve API-40'ta durum kodu beklenenle aynı, ancak yanıt i�
 | H-12 | Günlük çekim limiti hiç sıfırlanmıyor, önceki günlerin çekimleri de sayılıyor | R-3.5, G-6 | zm01, zm02, zm03 | beyaz kutu | Yüksek |
 | H-13 | Olmayan hesap sorgulanınca 404 yerine boş 200 dönüyor | R-10.2, Bölüm 7 | it01, API-31 (Postman) | API | Orta |
 | H-14 | Eşzamanlı para yatırmada bazı yatırmalar bakiyeye yansımıyor | R-2.5 | `performans/bankaccount-yuk-testi.jmx` | performans (eşzamanlılık) | Kritik |
+| H-15 | Eşzamanlı karşılıklı transferlerde bakiyeler ve toplam para bozuluyor | G-5, R-4.6 | `performans/bankaccount-transfer-testi.jmx` | performans (eşzamanlılık) | Kritik |
+| H-16 | Eşzamanlı karşılıklı transferlerin bir kısmı 500 hatası veriyor | R-4.6, Bölüm 7 | `performans/bankaccount-transfer-testi.jmx` | performans (eşzamanlılık) | Orta |
 
 > Her hata için: ilgili gereksinim kodu (örn. R-3.4), hatayı yakalayan test metodu ve
 > beklenen / gerçekleşen davranışı belirtin.
 
-`wb` ile başlayan testler `AccountServiceWhiteBoxTest`, `zm` ile başlayanlar `ZamanKurallariTest`, diğer test metotları `AccountServiceBlackBoxTest` sınıfındadır. Cucumber senaryoları `src/test/resources/features` altındaki dosyalardadır. `it` ile başlayanlar `integration` paketindeki sınıflardadır. API-xx istekleri docs/postman altındaki koleksiyondadır. Eşzamanlılık bulguları performans klasöründeki JMeter planıyla elde edildi.
+`wb` ile başlayan testler `AccountServiceWhiteBoxTest`, `zm` ile başlayanlar `ZamanKurallariTest`, diğer test metotları `AccountServiceBlackBoxTest` sınıfındadır. Cucumber senaryoları `src/test/resources/features` altındaki dosyalardadır. `it` ile başlayanlar `integration` paketindeki sınıflardadır. API-xx istekleri docs/postman altındaki koleksiyondadır. Eşzamanlılık bulguları performans klasöründeki JMeter planlarıyla elde edildi.
 
 ### H-01: Reddedilen yatırma ve çekme denemeleri için FAILED kaydı oluşmuyor
 
@@ -576,6 +579,32 @@ Kök neden: `AccountController.getAccount` hesap yoksa `ResponseEntity.ok(null)`
 | Etki seviyesi | Kritik |
 
 Tek istekle görülmez, yalnız eşzamanlı yükte ortaya çıkar. Yerel uygulamada 10 kullanıcı ve 5 saniyelik denemede de tekrarlandı (120 başarılı yatırma, bakiye 97 TL). Kök neden: `AccountService.deposit` hesabı okuyup tutarı ekleyip kaydediyor. Kilit veya sürüm (`@Version`) kontrolü olmadığı için eşzamanlı istekler birbirinin güncellemesinin üzerine yazıyor.
+
+### H-15: Eşzamanlı karşılıklı transferlerde bakiyeler ve toplam para bozuluyor
+
+| Alan | Değer |
+|------|-------|
+| İhlal edilen gereksinim | G-5, R-4.6 |
+| Yeniden üretme adımları | 10.000’er TL bakiyeli iki STANDARD hesap aç. 10 kullanıcı A’dan B’ye, 10 kullanıcı B’den A’ya 30 saniye boyunca 1’er TL transfer etsin. Bakiyeleri başarılı transfer sayılarıyla karşılaştır. |
+| Beklenen / Gerçekleşen | A 9.984 TL, B 10.016 TL, toplam 20.000 TL / A 9.946 TL, B 10.049 TL, toplam 19.995 TL |
+| Yakalayan test | `performans/bankaccount-transfer-testi.jmx` (sonuç dosyası `performans/sonuclar/transfer.csv`, canlı servis, 28.11.2026) |
+| Hangi teknikle bulundu | performans (eşzamanlılık) |
+| Etki seviyesi | Kritik |
+
+Yerel denemede de tekrarlandı ve toplam 20.001 TL’ye çıktı. Transfer işlemi iki hesabı kilit veya sürüm kontrolü olmadan okuyup yazıyor.
+
+### H-16: Eşzamanlı karşılıklı transferlerin bir kısmı 500 hatası veriyor
+
+| Alan | Değer |
+|------|-------|
+| İhlal edilen gereksinim | R-4.6, Bölüm 7 |
+| Yeniden üretme adımları | H-15 ile aynı. |
+| Beklenen / Gerçekleşen | Geçerli transferlerin hepsi HTTP 200 döner / 2.014 transferin 68’i (%3,4) HTTP 500 Internal Server Error döndü. |
+| Yakalayan test | `performans/bankaccount-transfer-testi.jmx` (sonuç dosyası `performans/sonuclar/transfer.csv`) |
+| Hangi teknikle bulundu | performans (eşzamanlılık) |
+| Etki seviyesi | Orta |
+
+Yerel denemede sunucu günlüğünde 500 hatalarının nedeni “Deadlock detected” olarak görüldü. A→B ve B→A işlemleri iki hesabı ters sırayla güncellediği için birbirini kilitliyor ve veritabanı işlemlerden birini iptal ediyor.
 
 <!--
 Her hata için aşağıdaki kayıt kullanılacak (Hata No H-01, H-02 ... ve testteki "Rapor: H-xx" yorumuyla aynı):
