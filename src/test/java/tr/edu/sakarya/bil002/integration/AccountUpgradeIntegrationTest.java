@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import tr.edu.sakarya.bil002.model.Account;
 import tr.edu.sakarya.bil002.model.AccountStatus;
 import tr.edu.sakarya.bil002.repository.AccountRepository;
+import tr.edu.sakarya.bil002.service.AccountService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -29,12 +30,15 @@ class AccountUpgradeIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
+    private AccountService accountService;
+
+    @Autowired
     private AccountRepository accountRepository;
 
     @ParameterizedTest
-    @CsvSource({"1000009001, 1000.00", "1000009002, 1000.01"})
-    void tdd01_upgrade_yeterliBakiyePremiumOlmali(String hesapNo, double bakiye) throws Exception {
-        hesapKaydet(hesapNo, "STANDARD", ACTIVE, bakiye);
+    @CsvSource({"1000.00", "1000.01"})
+    void tdd01_upgrade_yeterliBakiyePremiumOlmali(double bakiye) throws Exception {
+        String hesapNo = hesapKaydet("STANDARD", ACTIVE, bakiye);
 
         mockMvc.perform(post(YUKSELTME_YOLU, hesapNo))
                 .andExpect(status().isOk())
@@ -48,8 +52,7 @@ class AccountUpgradeIntegrationTest {
 
     @Test
     void tdd02_upgrade_limitinBirKurusAltiReddedilmeli() throws Exception {
-        String hesapNo = "1000009003";
-        hesapKaydet(hesapNo, "STANDARD", ACTIVE, 999.99);
+        String hesapNo = hesapKaydet("STANDARD", ACTIVE, 999.99);
 
         mockMvc.perform(post(YUKSELTME_YOLU, hesapNo))
                 .andExpect(status().isUnprocessableEntity());
@@ -58,10 +61,10 @@ class AccountUpgradeIntegrationTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"1000009004, FROZEN", "1000009005, CLOSED"})
-    void tdd03_upgrade_aktifOlmayanHesapReddedilmeli(String hesapNo, AccountStatus durum) throws Exception {
+    @CsvSource({"FROZEN", "CLOSED"})
+    void tdd03_upgrade_aktifOlmayanHesapReddedilmeli(AccountStatus durum) throws Exception {
         // Yeterli bakiye, hesap durumu kuralının tek başına sınanmasını sağlar.
-        hesapKaydet(hesapNo, "STANDARD", durum, 1_000.00);
+        String hesapNo = hesapKaydet("STANDARD", durum, 1_000.00);
 
         mockMvc.perform(post(YUKSELTME_YOLU, hesapNo))
                 .andExpect(status().isConflict());
@@ -71,8 +74,7 @@ class AccountUpgradeIntegrationTest {
 
     @Test
     void tdd04_upgrade_zatenPremiumHesapReddedilmeli() throws Exception {
-        String hesapNo = "1000009006";
-        hesapKaydet(hesapNo, "PREMIUM", ACTIVE, 1_000.00);
+        String hesapNo = hesapKaydet("PREMIUM", ACTIVE, 1_000.00);
 
         mockMvc.perform(post(YUKSELTME_YOLU, hesapNo))
                 .andExpect(status().isConflict());
@@ -82,17 +84,20 @@ class AccountUpgradeIntegrationTest {
 
     @Test
     void tdd05_upgrade_olmayanHesap404Donmeli() throws Exception {
-        String hesapNo = "1000009007";
+        String hesapNo = "0000000000";
 
         mockMvc.perform(post(YUKSELTME_YOLU, hesapNo))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Hesap bulunamadı: " + hesapNo));
     }
 
-    private void hesapKaydet(String hesapNo, String hesapTuru, AccountStatus durum, double bakiye) {
-        Account hesap = new Account(hesapNo, "Yükseltme Testi", hesapTuru, bakiye);
-        hesap.setStatus(durum);
-        accountRepository.save(hesap);
+    private String hesapKaydet(String hesapTuru, AccountStatus durum, double bakiye) {
+        Account hesap = accountService.createAccount("Yükseltme Testi", hesapTuru, bakiye);
+        if (durum != ACTIVE) {
+            hesap.setStatus(durum);
+            accountRepository.save(hesap);
+        }
+        return hesap.getAccountNumber();
     }
 
     private void hesabiDogrula(String hesapNo, String hesapTuru, AccountStatus durum, double bakiye) throws Exception {
