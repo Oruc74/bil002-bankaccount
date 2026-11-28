@@ -4,7 +4,7 @@
 **Öğrenci No:** _(Gün 19'da doldurulacak)_  
 **Tarih:** _(Gün 19'da doldurulacak)_  
 **Kısım 1 Repo URL (BankAccount):** https://github.com/Oruc74/bil002-bankaccount  
-**Kısım 2 Repo URL (Selenium + Cucumber):** _(Kısım 2 reposu açılınca doldurulacak)_
+**Kısım 2 Repo URL (Selenium + Cucumber):** https://github.com/Oruc74/bil002-selenium
 
 Bu rapor BYS üzerinden teslim edilir. Aşağıdaki Bölüm 1–10 Kısım 1'i, en sondaki Kısım 2 başlığı ise Selenium/Cucumber çalışmasını kapsar.
 
@@ -651,31 +651,60 @@ Her hata için aşağıdaki kayıt kullanılacak (Hata No H-01, H-02 ... ve test
 
 # KISIM 2 — Selenium + Cucumber (Web Otomasyonu)
 
-> Durum: Gün 16–18'de doldurulacak.
-
 ### K2.1 Seçilen Uygulama
 
-- **Site / uygulama:**
-- **Neden seçildi:**
-- **Test edilen akışlar (en az 2):**
+- **Site / uygulama:** [Sauce Demo](https://www.saucedemo.com), Sauce Labs'ın otomasyon denemeleri için sunduğu örnek alışveriş sitesi.
+- **Neden seçildi:** Site otomasyona uygun ve kararlı. Demo kullanıcıları giriş sayfasında yazıyor. CAPTCHA, SMS doğrulaması ve gerçek ödeme yok. Giriş, sepet, sıralama ve ödeme akışları var.
+- **Test edilen akışlar (en az 2):** Giriş, sepet, fiyata göre sıralama ve ödeme.
 
 ### K2.2 Senaryo Tablosu
 
 | Feature Dosyası | Senaryo Sayısı | Pozitif/Negatif | Scenario Outline? | Kısa Açıklama |
 |-----------------|----------------|-----------------|-------------------|---------------|
-| | | | | |
+| `giris.feature` | 4 | 1 pozitif, 3 negatif | Evet (3 örnek) | Geçerli giriş kabul edilir. Kilitli kullanıcı, yanlış şifre ve boş kullanıcı adı reddedilir. |
+| `sepet.feature` | 1 | Pozitif | Hayır | Ürün eklenince sepette görünür ve rozet 1 olur. Ürün çıkarılınca sepet boşalır. |
+| `siralama.feature` | 1 | Pozitif | Hayır | Ucuzdan pahalıya sıralamada 6 fiyat artan sırada görünür. |
+| `odeme.feature` | 2 | 1 pozitif, 1 negatif | Hayır | Toplam, ürün toplamı ile verginin toplamına eşittir ve sipariş onayı görünür. Posta kodu boşsa hata gösterilir. |
+
+Toplam 8 senaryo (4 pozitif, 4 negatif).
 
 ### K2.3 Page Object Model Yapısı
 
 | Page Sınıfı | Sorumluluğu (hangi sayfa/eleman) |
 |-------------|----------------------------------|
-| | |
+| `LoginPage` | Kullanıcı adı ve şifre alanları, giriş düğmesi ve hata mesajı. |
+| `ProductsPage` | Sayfa başlığı, sepete ekleme, sepeti açma, sıralama ve fiyatları okuma. |
+| `CartPage` | Sepet rozeti, ürün adı, ürün çıkarma ve ödemeye geçme. |
+| `CheckoutPage` | Ad, soyad ve posta kodu formu, hata mesajı, ürün toplamı, vergi, genel toplam, siparişi bitirme ve onay mesajı. |
+
+Locator'lar yalnızca bu sınıflarda yer alır. Mümkün olan yerlerde `id` ve `data-test` kullanıldı. Adım sınıflarında `findElement` yok.
 
 ### K2.4 Bekleme (Wait) Stratejisi
-(Nerede WebDriverWait / ExpectedConditions kullanıldı?)
+
+Her page sınıfında 10 saniyelik `WebDriverWait` kullanıldı. Kullanılan `ExpectedConditions` koşulları `visibilityOfElementLocated`, `visibilityOfAllElementsLocatedBy`, `presenceOfElementLocated`, `elementToBeClickable`, `invisibilityOfElementLocated`, `urlContains`, `textToBe` ve `numberOfElementsToBe`. `Thread.sleep` kullanılmadı.
+
+Sepete ekleyince “Add to cart” düğmesinin kaybolması, sıralamadan sonra seçilen sıralama yazısının görünmesi, ürünü sepetten çıkarınca ürün ve rozet öğelerinin sayısının 0 olması beklenir.
 
 ### K2.5 Karşılaşılan Sorunlar ve Çözümler
-(Kırılgan locator, dinamik içerik, zamanlama vb.)
+
+- Windows Akıllı Uygulama Denetimi, Selenium'un imzasız sürücü indiricisi `selenium-manager.exe` dosyasını engelledi (“Uygulama Denetimi ilkesi bu dosyayı engelledi”, hata 4551). → Ödevin izin verdiği WebDriverManager 6.4.0 kullanıldı ve Windows koruması açık kaldı.
+- Cucumber 8.x, JUnit 6 gerektiriyor. Ödev JUnit 5 istiyor. → Cucumber 7.34.9 ve JUnit 5.14.5 seçildi.
+- Tıklamadan sonra sayfa gecikmeli güncellenebilir. → Sayfanın beklenen duruma gelmesi bekleniyor.
+- Demo şifresi Chrome'da “şifreni değiştir” uyarısını açabilir. → Uyarı önlem olarak `ChromeOptions` tercihleriyle kapatıldı.
+- Scenario Outline'da boş değer girilmesi gerekiyor. → İlgili alana hiç yazı yazılmıyor.
+- Art arda 3 çalıştırmada bazen geçip bazen başarısız olan test görülmedi.
 
 ### K2.6 Çalıştırma Sonucu
-(`mvn test` çıktısı veya Cucumber HTML raporu ekran görüntüsü)
+
+`mvn test -Dheadless=true` komutu art arda 3 çalıştırmada aynı sonucu verdi. Her çalıştırma yaklaşık 15 saniye sürdü.
+
+```text
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+Başarısız senaryoda ekran görüntüsü alan kanca, beklenen başlık geçici olarak yanlış yazılarak denendi. Görüntü `target/screenshots/` klasörüne kaydedildi ve Cucumber raporuna eklendi.
+
+GitHub Actions (`ui-tests`) her push'ta Ubuntu üzerinde görünmez (headless) Chrome ile testleri çalıştırıyor; ilk çalışma (commit `d470871`) başarılı oldu.
+
+![Cucumber raporu: 8 senaryo geçti](img/k2-cucumber-rapor.png)
