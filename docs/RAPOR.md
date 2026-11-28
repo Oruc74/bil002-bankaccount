@@ -312,7 +312,7 @@ Koleksiyon dosyası `docs/postman/bankaccount.postman_collection.json`. İstekle
 
 Koleksiyon 28.11.2026'da canlı servis örneğine karşı Newman 6.2.1 (Postman'in komut satırı çalıştırıcısı) ile çalıştırıldı. 149 istekte 298 `pm.test` doğrulaması yapıldı ve 28 doğrulama başarısız oldu. 51 kontrol isteğinin 37'si geçti, 14'ü kaldı. Yerel uygulamada aynı koleksiyon aynı sonucu verdi.
 
-API-16, API-19 ve API-26 sonrasındaki doğrulama istekleri bakiye veya durumun değiştiğini gösterdi (G-4). Bu çalıştırmada yalnız canlı serviste görülen bir hata çıkmadı. Eşzamanlı davranış performans ve eşzamanlılık testlerinde ayrıca denenecek. Günlük limitin gün değişince sıfırlanması (H-12) canlı serviste denenemedi, çünkü sunucu saati değiştirilemiyor.
+API-16, API-19 ve API-26 sonrasındaki doğrulama istekleri bakiye veya durumun değiştiğini gösterdi (G-4). Bu çalıştırmada yalnız canlı serviste görülen bir hata çıkmadı. Eşzamanlı davranış Bölüm 7'de ayrıca sınandı. Günlük limitin gün değişince sıfırlanması (H-12) canlı serviste denenemedi, çünkü sunucu saati değiştirilemiyor.
 
 | Test ID | Metot | Endpoint | Beklenen Kod | Gerçekleşen Kod | Sonuç |
 |---------|-------|----------|--------------|-----------------|-------|
@@ -375,11 +375,31 @@ API-08, API-27, API-28 ve API-40'ta durum kodu beklenenle aynı, ancak yanıt i�
 ## 7. Performans Testi Sonuçları
 (JMeter raporu özeti, grafik)
 
-> Durum: Gün 14–15'te doldurulacak.
+Testleri JMeter 5.6.3 ile 28.11.2026'da kendi bilgisayarımdan canlı servise karşı bir kez çalıştırdım. Planlar `performans/` altındaki `bankaccount-yuk-testi.jmx`, `bankaccount-transfer-testi.jmx` ve `bankaccount-hesap-acma-testi.jmx` dosyalarıdır. Sonuç CSV’leri ve HTML raporları `performans/sonuclar/` altında. Token `-Jtoken` ile veriliyor ve dosyalarda yer almıyor.
 
 | Senaryo | Kullanıcı Sayısı | Ort. Yanıt Süresi (ms) | 90p (ms) | Throughput (istek/sn) | Hata % |
 |---------|------------------|------------------------|----------|-----------------------|--------|
-| | | | | | |
+| Para yatırma + bakiye sorgulama (60 sn) | 50 | 120 | 132 | 204 | 0,00 |
+| Karşılıklı transfer A↔B (30 sn) | 20 (10 + 10) | 183 | 239 | 62 | 3,37 |
+| Eşzamanlı hesap açma (kullanıcı başına 10) | 50 | 275 | 441 | 142 | 0,00 |
+
+![Para yatırma testinde yanıt süresi (1 sn aralık)](../performans/sonuclar/yatirma-grafik.png)
+
+![Transfer testi özeti](../performans/sonuclar/transfer-ozet.png)
+
+### Yanıt süresi ve darboğaz
+
+Para yatırma testinde yanıt süresi 60 saniye boyunca 100–120 ms civarında kaldı ve birkaç kısa sıçrama oldu. `curl` ile ölçülen ağ gidiş-dönüşü yaklaşık 70 ms olduğu için sürenin büyük kısmı ağdan geliyor. Hata ve belirgin yavaşlama görülmedi. Sunucu paylaşımlı olduğu için yük artırılmadı ve kapasite sınırı ölçülmedi. Transferde ortalama süre daha yüksekti (183 ms). Aynı iki hesabı güncelleyen işlemlerin birbirini beklemesi muhtemel neden.
+
+### Tutarlılık
+
+- **Para yatırma.** 6.363 başarılı yatırma ve geçmişte 6.363 kayıt vardı. Beklenen 6.363 TL yerine bakiye 4.465 TL oldu (H-14).
+- **Transfer.** 2.014 transferin 68’i HTTP 500 döndü (H-16). A→B yönünde 981, B→A yönünde 965 transfer başarılı oldu. Beklenen bakiyeler A için 9.984 TL, B için 10.016 TL ve toplam 20.000 TL idi. Gerçekleşen bakiyeler A için 9.946 TL, B için 10.049 TL ve toplam 19.995 TL oldu (H-15).
+- **Hesap açma.** 500 eşzamanlı istekte 500 farklı, 10 haneli numara üretildi. Tekrar görülmedi. Kod ve veritabanı benzersizliği zorlamıyor (Bölüm 1).
+
+### Yalnız eşzamanlılıkta çıkan bulgular
+
+H-14, H-15 ve H-16, tek istekle yapılan servis, BDD, entegrasyon ve Postman testlerinde görülmedi. Bu bulgular yerel uygulamada da tekrarlandı.
 
 ---
 
