@@ -6,9 +6,7 @@
 **Kısım 1 Repo URL (BankAccount):** https://github.com/Oruc74/bil002-bankaccount  
 **Kısım 2 Repo URL (Selenium + Cucumber):** https://github.com/Oruc74/bil002-selenium
 
-Bu rapor BYS üzerinden teslim edilir. Aşağıdaki Bölüm 1–10 Kısım 1'i, en sondaki Kısım 2 başlığı ise Selenium/Cucumber çalışmasını kapsar.
-
-> **Çalışma notu:** Bu dosya bir iskelettir. Her bölümdeki "Durum" satırı bölümün hangi aşamada doldurulacağını gösterir. Teslimden önce bu satırlar ve `<!-- -->` yorumları silinecek, doğrulanmamış bilgi bırakılmayacak.
+Bu rapor BYS üzerinden teslim edilir (son tarih: 18 Aralık 2026 Cuma). Aşağıdaki Bölüm 1–10 Kısım 1'i, en sondaki Kısım 2 başlığı ise Selenium/Cucumber çalışmasını kapsar.
 
 ---
 
@@ -17,21 +15,19 @@ Bu rapor BYS üzerinden teslim edilir. Aşağıdaki Bölüm 1–10 Kısım 1'i, 
 ## 1. Statik Test Sonuçları
 (SonarQube / Checkstyle bulguları)
 
-> Durum: Checkstyle ve elle kod incelemesi Gün 7'de dolduruldu. SonarQube for IDE bulguları eklenecek.
+> Durum: SonarQube for IDE bulguları eklenecek.
 
 | # | Araç | Dosya:Satır | Kural / Bulgu | Önem | Yorum |
 |---|------|-------------|---------------|------|-------|
 | 1 | Checkstyle 10.17.0 | `src/main/java` (tümü) | `mvn -B checkstyle:check`: 0 ihlal | — | `checkstyle.xml` adlandırma, import, süslü parantez, girinti ve satır uzunluğu gibi biçim kurallarını denetliyor, iş kuralı hatası aramıyor. Test kodları yapılandırmada kapsam dışı. |
-| 2 | Kod incelemesi (elle) | `AccountService.java:171` | Faiz `balance.longValue()` ve tam sayı bölmesiyle hesaplanıyor, kuruşlar kayboluyor | Kritik | H-09. `wb01` ve `wb02` testleriyle kanıtlandı. |
-| 3 | Kod incelemesi (elle) | `AccountService.java:193` | `validateTransferParties` hedef hesabı parametre olarak alıyor ama hiç kontrol etmiyor | Kritik | H-07. `kt03` ve `kt06` testleriyle kanıtlandı. |
+| 2 | Kod incelemesi (elle) | `AccountService.java:172` | Faiz `balance.longValue()` ve tam sayı bölmesiyle hesaplanıyor, kuruşlar kayboluyor | Kritik | H-09. `wb01` ve `wb02` testleriyle kanıtlandı. |
+| 3 | Kod incelemesi (elle) | `AccountService.java:209` | `validateTransferParties` hedef hesabı parametre olarak alıyor ama hiç kontrol etmiyor | Kritik | H-07. `kt03` ve `kt06` testleriyle kanıtlandı. |
 | 4 | Kod incelemesi (elle) | `TransactionService.java:41-49` | Günlük çekim toplamında tarih filtresi yok, bütün geçmiş toplanıyor | Yüksek | H-12. `zm01`, `zm02`, `zm03` testleriyle kanıtlandı. |
-| 5 | Kod incelemesi (elle) | `AccountService.java:242-245`, `Account.java:24-25` | Hesap numarası rastgele üretiliyor; kodda tekrar kontrolü, veritabanında unique kısıtı yok (R-1.5) | Orta | 500 eşzamanlı hesap açmada tekrar çıkmadı, bu yüzden testle gösterilemedi; benzersizlik garanti değil. |
+| 5 | Kod incelemesi (elle) | `AccountService.java:242-245`, `Account.java:24-25` | Hesap numarası rastgele üretiliyor; kodda tekrar kontrolü, veritabanında unique kısıtı yok (R-1.5) | Orta | 50 eşzamanlı kullanıcının açtığı 500 hesapta tekrar çıkmadı, bu yüzden testle gösterilemedi; benzersizlik garanti değil. |
 
 ---
 
 ## 2. Kara Kutu Test Vakaları
-
-> Durum: 2.1 ve 2.2 Gün 4'te, 2.3 Gün 5'te, 2.4 Gün 6'da doldurulacak. Test ID ile test metodu adı eşleşecek.
 
 ### 2.1 Denklik Sınıfı Tablosu
 
@@ -89,7 +85,7 @@ Bu rapor BYS üzerinden teslim edilir. Aşağıdaki Bölüm 1–10 Kısım 1'i, 
 
 #### Transfer
 
-Koşullar ve beklenen eylemler R-4.1–R-4.8 ile G-4 ve G-5’e dayanır. HTTP kodları servis sonuçlarının API karşılıklarını gösterir. İki tablonun sonuçları `test-sonuclari.txt` dosyasındaki sınıf çalıştırmasından alınmıştır.
+Koşullar ve beklenen eylemler R-4.1–R-4.8 ile G-4 ve G-5’e dayanır. HTTP kodları servis sonuçlarının API karşılıklarını gösterir. İki tablonun sonuçları `AccountServiceBlackBoxTest` sınıfının çalıştırılmasından alınmıştır.
 
 | Koşul / Eylem | K1 | K2 | K3 | K4 | K5 | K6 | K7 | K8 | K9 | K10 | K11 | K12 | K13 | K14 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -175,10 +171,10 @@ H-01 yüzünden kırmızı olan BVA-06, BVA-09, BVA-18 ve BVA-21’de limit aş�
 ## 3. Beyaz Kutu Test Sonuçları
 (JaCoCo ekran görüntüsü ve açıklama)
 
-Kapsama JaCoCo 0.8.12 ile ölçüldü: `mvn -B clean test "-Dmaven.test.failure.ignore=true"`. `@Tag("hata")` testleri dahil 99 test çalıştı; 37'si bilinen hatalar yüzünden kırmızı. Düz `mvn test` bu kırmızı testlerde `BUILD FAILURE` verip kapsama raporu üretmediği için hata yok sayma seçeneği kullanıldı. Ham veri: [kapsama/jacoco.csv](kapsama/jacoco.csv).
+Kapsama 28.11.2026 tarihinde `mvn -B clean test "-Dmaven.test.failure.ignore=true"` komutuyla JaCoCo 0.8.12 kullanılarak yeniden ölçüldü. `@Tag("hata")` testleri dahil 155 test çalıştı. Bunların 54'ü bilinen hatalar yüzünden kırmızı. Düz `mvn test` bu kırmızı testlerde `BUILD FAILURE` verip kapsama raporu üretmediği için hata yok sayma seçeneği kullanıldı. Ham veri: [kapsama/jacoco.csv](kapsama/jacoco.csv).
 
-- Branch Coverage: servis paketi %100 (48/48), tüm proje %94,2 (49/52)
-- Statement Coverage (satır): servis paketi %100 (121/121), tüm proje %60,7 (196/323)
+- Branch Coverage: servis paketi %100 (52/52), tüm proje %96,4 (54/56)
+- Statement Coverage (satır): servis paketi %100 (129/129), tüm proje %84,6 (281/332)
 
 ![JaCoCo servis paketi](img/jacoco-service.png)
 
@@ -186,7 +182,9 @@ Kapsama JaCoCo 0.8.12 ile ölçüldü: `mvn -B clean test "-Dmaven.test.failure.
 
 ### Dal tablosu (AccountService)
 
-Her koşulun doğru ve yanlış olmak üzere iki dalı vardır. `TransactionService` içinde koşul yoktur (0 dal); 14 satırının tamamı çalıştı.
+Her koşulun doğru ve yanlış olmak üzere iki dalı vardır. `AccountService` sınıfında 115/115 satır kapsandı. `TransactionService` içinde koşul yoktur (0 dal); 14 satırının tamamı çalıştı.
+
+Tablodaki kısa adlar test metodunun başındaki koddur (örneğin EP-08 = `ep08_createAccount_bosAd_reddedilmeli`).
 
 | Metot | Dal (koşul) | Test Metodu (doğru / yanlış) | Kapsandı mı? |
 |-------|-------------|------------------------------|--------------|
@@ -205,6 +203,8 @@ Her koşulun doğru ve yanlış olmak üzere iki dalı vardır. `TransactionServ
 | freezeAccount | `status == CLOSED` | ST-09 / ST-01 | ✔ |
 | unfreezeAccount | `status != FROZEN` | ST-02 / ST-06 | ✔ |
 | closeAccount | `status == CLOSED` | ST-11 / ST-03 | ✔ |
+| upgradeAccount | `!STANDARD.equals(account.getAccountType())` | TDD-04 / TDD-01 | ✔ |
+| upgradeAccount | `account.getBalance() < MIN_PREMIUM_UPGRADE_BALANCE` | TDD-02 / TDD-01 | ✔ |
 | calculateInterest | tür `PREMIUM` mu? (%5 / %3) | wb02 / wb01 | ✔ |
 | requireActive | `status != ACTIVE` | EP-04 / EP-01 | ✔ |
 | validateTransferParties | `source.getStatus() != ACTIVE` | KT-02 / KT-01 | ✔ |
@@ -223,12 +223,12 @@ Uygulamanın saati testten değiştirilemiyor ve `src/main` değiştirilmiyor. B
 
 ### Kapsanamayan dallar ve nedenleri
 
-Servis paketinde kapsanmayan dal yok. Projede kalan 3 dal:
+Servis paketinde kapsanmayan dal yok. Projede kalan 2 dal:
 
-- `GlobalExceptionHandler`, `ex instanceof ErrorResponse` (2 dal): Bu sınıf yalnız HTTP isteklerinde devreye girer. Testler servis metotlarını doğrudan çağırıyor.
+- `GlobalExceptionHandler.handleOther` içindeki `ex instanceof ErrorResponse` koşulunun yanlış dalı (1 dal): yalnız beklenmeyen bir sunucu hatasında (500) çalışır; testlerde böyle bir durum yok. Doğru dalı `it30` (405) ile kapsandı.
 - `Transaction.onCreate`, `timestamp == null` koşulunun yanlış dalı (1 dal): Uygulama kaydı hiçbir zaman hazır bir zamanla oluşturmuyor; testler de zamanı kayıttan sonra değiştiriyor.
 
-Tüm projede satır oranının düşük kalmasının nedeni HTTP katmanı (`controller`, `dto`, `GlobalExceptionHandler`) ve `model` sınıflarının testlerde kullanılmayan getter/setter metotlarıdır.
+Servis dışında kapsanmayan satırlar DTO ve model sınıflarının testlerde kullanılmayan getter/setter metotları, `handleOther` içindeki 500 yolu ve `main` metodudur.
 
 %100 dal kapsaması hatasızlık anlamına gelmiyor. H-02, H-10 ve H-12 gibi hatalar kodda hiç yazılmamış kontrollerdir; kapsama raporu olmayan kodu gösteremez. Bunlar gereksinimden yazılan testlerle bulundu.
 
@@ -293,7 +293,7 @@ Beş feature dosyasındaki 22 senaryo, hesap işlemlerinin sonucunu bakiye, hesa
 
 Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` etiketli `Examples` bloğunda yer alır. `mvn -B test -Dtest=CucumberRunnerTest` komutuyla, örnek dosyadaki iki senaryo dahil 24 senaryo çalıştı. 16 senaryo geçti ve 8 senaryo bilinen hataları yakaladı.
 
-`mvn -B checkstyle:check test -DexcludedGroups=hata` ile 83 test geçti ve Checkstyle 0 ihlal bildirdi. `mvn -B test -Dgroups=hata` çalıştırmasında beklenen şekilde başarısız olan 45 testin 8'i Cucumber senaryosuydu.
+Teslim öncesi son çalıştırmada (28.11.2026) `mvn -B checkstyle:check test -DexcludedGroups=hata` ile 101 test geçti ve Checkstyle 0 ihlal bildirdi. `mvn -B test -Dgroups=hata` ile 54 test beklendiği gibi başarısız oldu; bunların 8'i Cucumber senaryosu.
 
 ---
 
@@ -302,7 +302,7 @@ Faiz taslağında kuruşlu faiz beklenen üç örnek, H-09'u yakalayan `@hata` e
 
 ### Entegrasyon testleri (MockMvc)
 
-`AccountControllerIntegrationTest` (it01–it23) ve `TransactionControllerIntegrationTest` (it24–it29) HTTP kodunu, JSON gövdesini ve Bölüm 7 hata alanlarını doğruluyor. Yükseltme özelliği `AccountUpgradeIntegrationTest` (TDD, 7 senaryo) ile sınanıyor. Bilinen hatalar nedeniyle 9 test başarısız: it01 (H-13), it04 (H-06), it07 (H-03), it08 (H-04), it09 (H-02), it11 (H-11), it15 (H-10), it25 (H-07), it28 (H-08). API belgesinde `GET /api/accounts` için hata durumu tanımlanmıyor.
+`AccountControllerIntegrationTest` (it01–it23 ve it30) ve `TransactionControllerIntegrationTest` (it24–it29) HTTP kodunu, JSON gövdesini ve Bölüm 7 hata alanlarını doğruluyor. Yükseltme özelliği `AccountUpgradeIntegrationTest` (TDD, 7 senaryo) ile sınanıyor. Bilinen hatalar nedeniyle 9 test başarısız: it01 (H-13), it04 (H-06), it07 (H-03), it08 (H-04), it09 (H-02), it11 (H-11), it15 (H-10), it25 (H-07), it28 (H-08). API belgesinde `GET /api/accounts` için hata durumu tanımlı değil; desteklenmeyen `DELETE /api/accounts` isteği 405 beklentisiyle sınandı (it30).
 
 ### Postman koleksiyonu
 
@@ -312,7 +312,7 @@ Koleksiyon dosyası `docs/postman/bankaccount.postman_collection.json`. İstekle
 
 Koleksiyon 28.11.2026'da canlı servis örneğine karşı Newman 6.2.1 (Postman'in komut satırı çalıştırıcısı) ile çalıştırıldı. 149 istekte 298 `pm.test` doğrulaması yapıldı ve 28 doğrulama başarısız oldu. 51 kontrol isteğinin 37'si geçti, 14'ü kaldı. Yerel uygulamada aynı koleksiyon aynı sonucu verdi.
 
-API-16, API-19 ve API-26 sonrasındaki doğrulama istekleri bakiye veya durumun değiştiğini gösterdi (G-4). Bu çalıştırmada yalnız canlı serviste görülen bir hata çıkmadı. Eşzamanlı davranış Bölüm 7'de ayrıca sınandı. Günlük limitin gün değişince sıfırlanması (H-12) canlı serviste denenemedi, çünkü sunucu saati değiştirilemiyor.
+API-16, API-19 ve API-26 sonrasındaki doğrulama istekleri, reddedilmesi gereken bu işlemlerin bakiyeyi veya durumu değiştirdiğini gösterdi. Bu çalıştırmada yalnız canlı serviste görülen bir hata çıkmadı. Eşzamanlı davranış Bölüm 7'de ayrıca sınandı. Günlük limitin gün değişince sıfırlanması (H-12) canlı serviste denenemedi, çünkü sunucu saati değiştirilemiyor.
 
 | Test ID | Metot | Endpoint | Beklenen Kod | Gerçekleşen Kod | Sonuç |
 |---------|-------|----------|--------------|-----------------|-------|
@@ -383,19 +383,21 @@ Testleri JMeter 5.6.3 ile 28.11.2026'da kendi bilgisayarımdan canlı servise ka
 | Karşılıklı transfer A↔B (30 sn) | 20 (10 + 10) | 183 | 239 | 62 | 3,37 |
 | Eşzamanlı hesap açma (kullanıcı başına 10) | 50 | 275 | 441 | 142 | 0,00 |
 
-![Para yatırma testinde yanıt süresi (1 sn aralık)](../performans/sonuclar/yatirma-grafik.png)
+![Para yatırma testinde yanıt süresi (1 sn aralık)](img/perf-yatirma-grafik.png)
 
-![Transfer testi özeti](../performans/sonuclar/transfer-ozet.png)
+![Transfer testi özeti](img/perf-transfer-ozet.png)
 
 ### Yanıt süresi ve darboğaz
 
 Para yatırma testinde yanıt süresi 60 saniye boyunca 100–120 ms civarında kaldı ve birkaç kısa sıçrama oldu. `curl` ile ölçülen ağ gidiş-dönüşü yaklaşık 70 ms olduğu için sürenin büyük kısmı ağdan geliyor. Hata ve belirgin yavaşlama görülmedi. Sunucu paylaşımlı olduğu için yük artırılmadı ve kapasite sınırı ölçülmedi. Transferde ortalama süre daha yüksekti (183 ms). Aynı iki hesabı güncelleyen işlemlerin birbirini beklemesi muhtemel neden.
 
+Tablodaki değerlerin yorumu: Para yatırma testinde ortalama 120 ms, 90. persentil 132 ms, yani isteklerin %90'ı 132 ms'den kısa sürdü; ortalama ile 90. persentil yakın olduğu için süreler tutarlı. Saniyede 204 istek işlendi, hata yok. Transferde ortalama 183 ms, 90. persentil 239 ms, saniyede 62 istek ve %3,37 hata görüldü; istek/sn'nin düşük olmasının nedeni 20 kullanıcıyla çalışılması. Hesap açmada süreler daha yüksek (ortalama 275 ms, 90. persentil 441 ms, saniyede 142 istek); test yalnız birkaç saniye sürdü ve 50 kullanıcı aynı anda yeni bağlantı açtı, bu muhtemel neden.
+
 ### Tutarlılık
 
 - **Para yatırma.** 6.363 başarılı yatırma ve geçmişte 6.363 kayıt vardı. Beklenen 6.363 TL yerine bakiye 4.465 TL oldu (H-14).
 - **Transfer.** 2.014 transferin 68’i HTTP 500 döndü (H-16). A→B yönünde 981, B→A yönünde 965 transfer başarılı oldu. Beklenen bakiyeler A için 9.984 TL, B için 10.016 TL ve toplam 20.000 TL idi. Gerçekleşen bakiyeler A için 9.946 TL, B için 10.049 TL ve toplam 19.995 TL oldu (H-15).
-- **Hesap açma.** 500 eşzamanlı istekte 500 farklı, 10 haneli numara üretildi. Tekrar görülmedi. Kod ve veritabanı benzersizliği zorlamıyor (Bölüm 1).
+- **Hesap açma.** 50 eşzamanlı kullanıcının açtığı toplam 500 hesapta 500 farklı, 10 haneli numara üretildi. Tekrar görülmedi. Kod ve veritabanı benzersizliği zorlamıyor (Bölüm 1).
 
 ### Yalnız eşzamanlılıkta çıkan bulgular
 
@@ -406,13 +408,26 @@ H-14, H-15 ve H-16, tek istekle yapılan servis, BDD, entegrasyon ve Postman tes
 ## 8. CI/CD Pipeline
 (GitHub Actions ekran görüntüsü)
 
-> Durum: Gün 19'da doldurulacak (son commit'teki çalışmanın ekran görüntüsü ve Summary sayfasındaki @hata özeti).
+`.github/workflows/ci.yml` iş akışı, `main` ve `develop` dallarına yapılan her push ve bu dalları hedefleyen her pull request için çalışır.
+
+1. Checkstyle çalışır.
+2. Proje derlenir.
+3. `hata` etiketi olmayan testler çalışır. Bu testlerin geçmesi gerekir.
+4. `@hata` etiketli testler çalışır. Bu testlerin başarısız olması beklenir ve `continue-on-error` sayesinde pipeline devam eder.
+5. `@hata` testlerinin özeti Summary sayfasına yazılır.
+6. JaCoCo raporu üretilir ve `jacoco-report`, `surefire-reports` ve `checkstyle-report` adlı üç artifact yüklenir.
+
+`dd72d02` commit’indeki çalışma Success sonucuyla 1 dk 5 sn’de tamamlandı ve 3 artifact üretti. Annotations bölümündeki “Process completed with exit code 1” satırı, beklendiği gibi başarısız olan `@hata` adımından geliyor.
+
+![GitHub Actions çalışması](img/actions-calisma.png)
+
+> Durum: Summary sayfasındaki @hata özeti ekran görüntüsü eklenecek.
+
+Kısım 2 reposunda ayrıca `ui-tests` iş akışı var (K2.6).
 
 ---
 
 ## 9. Bulunan Hatalar
-
-> Durum: Hata bulundukça doldurulacak (Gün 4'ten itibaren).
 
 | Hata No | Açıklama | İhlal Edilen Kural | Yakalayan Test | Hangi Teknikle Bulundu | Etki Seviyesi |
 |---------|----------|--------------------|----------------|------------------------|---------------|
@@ -433,9 +448,6 @@ H-14, H-15 ve H-16, tek istekle yapılan servis, BDD, entegrasyon ve Postman tes
 | H-15 | Eşzamanlı karşılıklı transferlerde bakiyeler ve toplam para bozuluyor | G-5, R-4.6 | `performans/bankaccount-transfer-testi.jmx` | performans (eşzamanlılık) | Kritik |
 | H-16 | Eşzamanlı karşılıklı transferlerin bir kısmı 500 hatası veriyor | R-4.6, Bölüm 7 | `performans/bankaccount-transfer-testi.jmx` | performans (eşzamanlılık) | Orta |
 
-> Her hata için: ilgili gereksinim kodu (örn. R-3.4), hatayı yakalayan test metodu ve
-> beklenen / gerçekleşen davranışı belirtin.
-
 `wb` ile başlayan testler `AccountServiceWhiteBoxTest`, `zm` ile başlayanlar `ZamanKurallariTest`, diğer test metotları `AccountServiceBlackBoxTest` sınıfındadır. Cucumber senaryoları `src/test/resources/features` altındaki dosyalardadır. `it` ile başlayanlar `integration` paketindeki sınıflardadır. API-xx istekleri docs/postman altındaki koleksiyondadır. Eşzamanlılık bulguları performans klasöründeki JMeter planlarıyla elde edildi.
 
 ### H-01: Reddedilen yatırma ve çekme denemeleri için FAILED kaydı oluşmuyor
@@ -445,7 +457,7 @@ H-14, H-15 ve H-16, tek istekle yapılan servis, BDD, entegrasyon ve Postman tes
 | İhlal edilen gereksinim | R-2.7, R-3.8, Bölüm 6 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli hesap aç, -100 TL yatırmayı (veya 1.000,01 TL çekmeyi) dene, işlem geçmişine bak |
 | Beklenen / Gerçekleşen | İstek reddedilir ve FAILED kaydı oluşur / İstek reddedilir, bakiye değişmez ama reddedilen deneme için FAILED kaydı oluşmaz |
-| Yakalayan test | `ep03_deposit_negatifMiktar_reddedilmeli`, `ep04_deposit_dondurulmusHesap_reddedilmeli`, `ep05_deposit_kapaliHesap_reddedilmeli`, `ep15_withdraw_negatifMiktar_reddedilmeli`, `bva01_deposit_eksiBirKurus_reddedilmeli`, `bva06_deposit_standartMaksimumuAsan_10000_01TL`, `bva09_deposit_premiumMaksimumuAsan_50000_01TL`, `bva10_withdraw_eksiBirKurus_reddedilmeli`, `bva11_withdraw_sifirTL_reddedilmeli`, `bva15_withdraw_bakiyedenFazla_reddedilmeli`, `bva18_withdraw_standartGunlukToplamiAsan_5000_01TL`, `bva21_withdraw_premiumGunlukLimitiAsan_20000_01TL`, `ep18_withdraw_kapaliHesap_reddedilmeli`, `ig03_gecmis_basariliVeReddedilenKayitlarDoner`, API-08 (Postman), API-40 (Postman) |
+| Yakalayan test | `AccountServiceBlackBoxTest.ep03_deposit_negatifMiktar_reddedilmeli`, `AccountServiceBlackBoxTest.ep04_deposit_dondurulmusHesap_reddedilmeli`, `AccountServiceBlackBoxTest.ep05_deposit_kapaliHesap_reddedilmeli`, `AccountServiceBlackBoxTest.ep15_withdraw_negatifMiktar_reddedilmeli`, `AccountServiceBlackBoxTest.bva01_deposit_eksiBirKurus_reddedilmeli`, `AccountServiceBlackBoxTest.bva06_deposit_standartMaksimumuAsan_10000_01TL`, `AccountServiceBlackBoxTest.bva09_deposit_premiumMaksimumuAsan_50000_01TL`, `AccountServiceBlackBoxTest.bva10_withdraw_eksiBirKurus_reddedilmeli`, `AccountServiceBlackBoxTest.bva11_withdraw_sifirTL_reddedilmeli`, `AccountServiceBlackBoxTest.bva15_withdraw_bakiyedenFazla_reddedilmeli`, `AccountServiceBlackBoxTest.bva18_withdraw_standartGunlukToplamiAsan_5000_01TL`, `AccountServiceBlackBoxTest.bva21_withdraw_premiumGunlukLimitiAsan_20000_01TL`, `AccountServiceBlackBoxTest.ep18_withdraw_kapaliHesap_reddedilmeli`, `AccountServiceBlackBoxTest.ig03_gecmis_basariliVeReddedilenKayitlarDoner`, API-08 (Postman), API-40 (Postman) |
 | Hangi teknikle bulundu | EP, BVA, API |
 | Etki seviyesi | Düşük |
 
@@ -456,7 +468,7 @@ H-14, H-15 ve H-16, tek istekle yapılan servis, BDD, entegrasyon ve Postman tes
 | İhlal edilen gereksinim | R-3.3 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli hesap aç, hesabı dondur, 100 TL çek |
 | Beklenen / Gerçekleşen | Çekim reddedilir, bakiye 1.000 kalır / Çekim yapılır, bakiye 900 olur ve geçmişe SUCCESS kaydı yazılır |
-| Yakalayan test | `ep07_withdraw_dondurulmusHesap_reddedilmeli`, `para_cekme.feature` — “Dondurulmuş hesaptan para çekilemez”, `it09_withdraw_dondurulmusHesap_409Donmeli`, API-16 (Postman) |
+| Yakalayan test | `AccountServiceBlackBoxTest.ep07_withdraw_dondurulmusHesap_reddedilmeli`, `para_cekme.feature` — “Dondurulmuş hesaptan para çekilemez”, `AccountControllerIntegrationTest.it09_withdraw_dondurulmusHesap_409Donmeli`, API-16 (Postman) |
 | Hangi teknikle bulundu | EP, BDD, API |
 | Etki seviyesi | Yüksek |
 
@@ -467,7 +479,7 @@ H-14, H-15 ve H-16, tek istekle yapılan servis, BDD, entegrasyon ve Postman tes
 | İhlal edilen gereksinim | R-2.2 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli hesap aç, 0 TL yatır |
 | Beklenen / Gerçekleşen | İstek reddedilir (geçersiz tutar) / Kabul edilir, geçmişe 0 TL'lik DEPOSIT/SUCCESS kaydı yazılır |
-| Yakalayan test | `ep02_deposit_sifirMiktar_reddedilmeli`, `bva02_deposit_sifirTL_sinirDegeri`, `para_yatirma.feature` — “Sıfır lira yatırma reddedilir”, `it07_deposit_sifirTutar_400Donmeli`, API-09 (Postman) |
+| Yakalayan test | `AccountServiceBlackBoxTest.ep02_deposit_sifirMiktar_reddedilmeli`, `AccountServiceBlackBoxTest.bva02_deposit_sifirTL_sinirDegeri`, `para_yatirma.feature` — “Sıfır lira yatırma reddedilir”, `AccountControllerIntegrationTest.it07_deposit_sifirTutar_400Donmeli`, API-09 (Postman) |
 | Hangi teknikle bulundu | EP, BVA, BDD, API |
 | Etki seviyesi | Orta |
 
@@ -478,7 +490,7 @@ H-14, H-15 ve H-16, tek istekle yapılan servis, BDD, entegrasyon ve Postman tes
 | İhlal edilen gereksinim | R-3.4 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli hesap aç, 1.000 TL çek |
 | Beklenen / Gerçekleşen | Çekim başarılı, bakiye 0 / "Yetersiz bakiye" hatası, bakiye 1.000 kalır |
-| Yakalayan test | `bva14_withdraw_tamBakiye_cekilebilmeli`, `it08_withdraw_tamBakiye_200Donmeli`, API-15 (Postman) |
+| Yakalayan test | `AccountServiceBlackBoxTest.bva14_withdraw_tamBakiye_cekilebilmeli`, `AccountControllerIntegrationTest.it08_withdraw_tamBakiye_200Donmeli`, API-15 (Postman) |
 | Hangi teknikle bulundu | BVA, API |
 | Etki seviyesi | Orta |
 
@@ -487,9 +499,9 @@ H-14, H-15 ve H-16, tek istekle yapılan servis, BDD, entegrasyon ve Postman tes
 | Alan | Değer |
 |------|-------|
 | İhlal edilen gereksinim | R-3.5, Bölüm 3 |
-| Yeniden üretme adımları | 30.000 TL bakiyeli PREMIUM hesap aç, 20.000 TL çek (veya önce 12.000, sonra 8.000 TL çek) |
-| Beklenen / Gerçekleşen | Toplam 20.000 TL çekilebilir / Tek seferde 20.000 TL "Günlük çekim limiti aşıldı" hatasıyla reddedilir; 12.000 + 8.000 denemesinde ikinci çekim 422 döner, bakiye 18.000 TL kalır |
-| Yakalayan test | `bva20_withdraw_premiumGunlukLimit_20000TL`, `wb04_withdraw_gunlukLimitKontrol_premium`, API-14 (Postman) |
+| Yeniden üretme adımları | 30.000 TL bakiyeli PREMIUM hesap aç, 20.000 TL çek (veya önce 12.500, sonra 7.500 TL çek) |
+| Beklenen / Gerçekleşen | Toplam 20.000 TL çekilebilir / Tek seferde 20.000 TL "Günlük çekim limiti aşıldı" hatasıyla reddedilir; 12.500 + 7.500 TL denemesinde ikinci çekim "Günlük çekim limiti aşıldı" hatasıyla reddedildi |
+| Yakalayan test | `AccountServiceBlackBoxTest.bva20_withdraw_premiumGunlukLimit_20000TL`, `AccountServiceWhiteBoxTest.wb04_withdraw_gunlukLimitKontrol_premium`, API-14 (Postman) |
 | Hangi teknikle bulundu | BVA, beyaz kutu, API |
 | Etki seviyesi | Orta |
 
@@ -500,7 +512,7 @@ H-14, H-15 ve H-16, tek istekle yapılan servis, BDD, entegrasyon ve Postman tes
 | İhlal edilen gereksinim | R-1.4 |
 | Yeniden üretme adımları | Başlangıç bakiyesi -0,01 (veya -100) ile hesap aç |
 | Beklenen / Gerçekleşen | İstek reddedilir / Hesap negatif bakiyeyle ACTIVE olarak açılır |
-| Yakalayan test | `ep10_createAccount_negatifBakiye_reddedilmeli`, `bva22_createAccount_eksiBirKurus_reddedilmeli`, `it04_createAccount_negatifBakiye_400Donmeli`, API-03 (Postman) |
+| Yakalayan test | `AccountServiceBlackBoxTest.ep10_createAccount_negatifBakiye_reddedilmeli`, `AccountServiceBlackBoxTest.bva22_createAccount_eksiBirKurus_reddedilmeli`, `AccountControllerIntegrationTest.it04_createAccount_negatifBakiye_400Donmeli`, API-03 (Postman) |
 | Hangi teknikle bulundu | EP, BVA, API |
 | Etki seviyesi | Yüksek |
 
@@ -511,7 +523,7 @@ H-14, H-15 ve H-16, tek istekle yapılan servis, BDD, entegrasyon ve Postman tes
 | İhlal edilen gereksinim | R-4.3 |
 | Yeniden üretme adımları | Her deneme için 1.000 TL bakiyeli aktif bir kaynak hesap aç. İlk denemede 200 TL bakiyeli hedefi dondur. İkinci denemede 0 TL bakiyeli hedefi kapat. Her hedefe `POST /api/transactions/transfer` ile 250 TL gönder. |
 | Beklenen / Gerçekleşen | İki istek de HTTP 409 ile reddedilir, bakiyeler ve durumlar korunur ve `TRANSFER/SUCCESS` kaydı oluşmaz / İki istek de HTTP 200 döndü. İlkinde kaynak 1.000 TL’den 750 TL’ye, hedef 200 TL’den 450 TL’ye geldi ve hedef `FROZEN` kaldı. İkincisinde kaynak 1.000 TL’den 750 TL’ye, hedef 0 TL’den 250 TL’ye geldi ve hedef `CLOSED` kaldı. |
-| Yakalayan test | `kt03_transfer_hedefDondurulmus_reddedilmeli`, `kt06_transfer_hedefKapali_reddedilmeli`, `transfer.feature` — “Dondurulmuş hesaba para gönderilemez”, `it25_transfer_dondurulmusHedef_409Donmeli`, API-19 (Postman) |
+| Yakalayan test | `AccountServiceBlackBoxTest.kt03_transfer_hedefDondurulmus_reddedilmeli`, `AccountServiceBlackBoxTest.kt06_transfer_hedefKapali_reddedilmeli`, `transfer.feature` — “Dondurulmuş hesaba para gönderilemez”, `TransactionControllerIntegrationTest.it25_transfer_dondurulmusHedef_409Donmeli`, API-19 (Postman) |
 | Hangi teknikle bulundu | karar tablosu, BDD, API |
 | Etki seviyesi | Kritik |
 
@@ -524,7 +536,7 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-4.4 |
 | Yeniden üretme adımları | 1.000 TL bakiyeli aktif bir hesap aç. `POST /api/transactions/transfer` isteğinde kaynak ve hedef olarak aynı hesap numarasını kullan ve 250 TL gönder. |
 | Beklenen / Gerçekleşen | İstek HTTP 400 ile reddedilir, bakiye ve durum korunur ve `TRANSFER/SUCCESS` kaydı oluşmaz / İstek HTTP 200 döndü, bakiye 1.000 TL kaldı. Geçmişte `balanceAfter` değerleri 750 TL ve 1.000 TL olan iki `TRANSFER/SUCCESS` kaydı oluştu. |
-| Yakalayan test | `kt04_transfer_ayniHesap_reddedilmeli`, `it28_transfer_ayniHesap_400Donmeli`, API-20 (Postman) |
+| Yakalayan test | `AccountServiceBlackBoxTest.kt04_transfer_ayniHesap_reddedilmeli`, `TransactionControllerIntegrationTest.it28_transfer_ayniHesap_400Donmeli`, API-20 (Postman) |
 | Hangi teknikle bulundu | karar tablosu, API |
 | Etki seviyesi | Yüksek |
 
@@ -535,7 +547,7 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-8.3 |
 | Yeniden üretme adımları | STANDARD hesaplarda 1.000, 2 ve 999 TL, PREMIUM hesaplarda 1.000, 2.500,50 ve 239,99 TL başlangıç bakiyesiyle aylık faiz uygula. |
 | Beklenen / Gerçekleşen | Faiz kuruşa yarım yukarı yuvarlanır / Faiz tam liraya kırpıldı. Beklenen / gerçekleşen bakiyeler: 1.002,50 / 1.002,00; 2,01 / 2,00; 1.001,50 / 1.001,00; 1.004,17 / 1.004,00; 2.510,92 / 2.510,50; 240,99 / 239,99 TL. |
-| Yakalayan test | `fz01_faiz_standartHesap`, `fz02_faiz_premiumHesap`, `fz03_faiz_yarimKurusYukariYuvarlanir`, `fz07_faiz_premiumHesapOndalikBakiye`, `wb01_calculateInterest_standartHesap_dogruFaiz`, `wb02_calculateInterest_premiumHesap_dogruFaiz`, `faiz.feature` — “Aylık faiz kuruşa yuvarlanıp bakiyeye eklenir” (Kuruş hassasiyeti gerektiren faiz örnekleri), API-27 (Postman), API-28 (Postman) |
+| Yakalayan test | `AccountServiceBlackBoxTest.fz01_faiz_standartHesap`, `AccountServiceBlackBoxTest.fz02_faiz_premiumHesap`, `AccountServiceBlackBoxTest.fz03_faiz_yarimKurusYukariYuvarlanir`, `AccountServiceBlackBoxTest.fz07_faiz_premiumHesapOndalikBakiye`, `AccountServiceWhiteBoxTest.wb01_calculateInterest_standartHesap_dogruFaiz`, `AccountServiceWhiteBoxTest.wb02_calculateInterest_premiumHesap_dogruFaiz`, `faiz.feature` — “Aylık faiz kuruşa yuvarlanıp bakiyeye eklenir” (Kuruş hassasiyeti gerektiren faiz örnekleri), API-27 (Postman), API-28 (Postman) |
 | Hangi teknikle bulundu | EP, beyaz kutu, BDD, API |
 | Etki seviyesi | Kritik |
 
@@ -546,7 +558,7 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-7.2 |
 | Yeniden üretme adımları | 0,01, 100 ve 5.000 TL bakiyeli ACTIVE hesapları ve 100 TL bakiyeli FROZEN hesabı kapatmayı dene. |
 | Beklenen / Gerçekleşen | HTTP 409, durum ve bakiye korunur / API tüm denemelerde HTTP 200 döndü. Hesaplar CLOSED oldu ve bakiyeleri korundu. |
-| Yakalayan test | `st04_bakiyeliAktifHesapKapatilamaz`, `st08_bakiyeliDondurulmusHesapKapatilamaz`, `hesap_durumu.feature` — “Bakiyesi olan hesap kapatılamaz”, `it15_close_bakiyeliHesap_409Donmeli`, API-26 (Postman) |
+| Yakalayan test | `AccountServiceBlackBoxTest.st04_bakiyeliAktifHesapKapatilamaz`, `AccountServiceBlackBoxTest.st08_bakiyeliDondurulmusHesapKapatilamaz`, `hesap_durumu.feature` — “Bakiyesi olan hesap kapatılamaz”, `AccountControllerIntegrationTest.it15_close_bakiyeliHesap_409Donmeli`, API-26 (Postman) |
 | Hangi teknikle bulundu | durum geçişi, BDD, API |
 | Etki seviyesi | Kritik |
 
@@ -557,7 +569,7 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-5.1 |
 | Yeniden üretme adımları | Hesabı dondur ve dondurma isteğini tekrarla. |
 | Beklenen / Gerçekleşen | HTTP 409, hesap FROZEN kalır / API HTTP 200 döndü, hesap FROZEN kaldı. |
-| Yakalayan test | `st05_dondurulmusHesapTekrarDondurulamaz`, `hesap_durumu.feature` — “Dondurulmuş hesap tekrar dondurulamaz”, `it11_freeze_zatenDondurulmus_409Donmeli`, API-22 (Postman) |
+| Yakalayan test | `AccountServiceBlackBoxTest.st05_dondurulmusHesapTekrarDondurulamaz`, `hesap_durumu.feature` — “Dondurulmuş hesap tekrar dondurulamaz”, `AccountControllerIntegrationTest.it11_freeze_zatenDondurulmus_409Donmeli`, API-22 (Postman) |
 | Hangi teknikle bulundu | durum geçişi, BDD, API |
 | Etki seviyesi | Yüksek |
 
@@ -568,7 +580,7 @@ Kapalı hesap tekrar açılamaz (R-7.4). Hesaba giren para çekilemediği ve ba�
 | İhlal edilen gereksinim | R-3.5, G-6, Bölüm 3 (her gün limit sıfırlanır) |
 | Yeniden üretme adımları | 15.000 TL bakiyeli STANDARD hesap aç, 5.000 TL çek, bu çekim kaydının zamanını `TransactionRepository` ile dün 23:59:59 yap, tekrar 5.000 TL çek |
 | Beklenen / Gerçekleşen | Dünkü çekim bugüne sayılmaz, ikinci çekim kabul edilir, bakiye 5.000 TL / "Günlük çekim limiti aşıldı" hatasıyla reddedildi. PREMIUM hesapta dün 12.000 TL çektikten sonra bugün 10.000 TL çekim de reddedildi. |
-| Yakalayan test | `zm01_standartDunkuCekimBugunkuLimiteSayilmaz`, `zm02_premiumDunkuCekimBugunkuLimiteSayilmaz`, `zm03_dunVeBugunKaristiksaYalnizBugunkuCekimSayilir` |
+| Yakalayan test | `ZamanKurallariTest.zm01_standartDunkuCekimBugunkuLimiteSayilmaz`, `ZamanKurallariTest.zm02_premiumDunkuCekimBugunkuLimiteSayilmaz`, `ZamanKurallariTest.zm03_dunVeBugunKaristiksaYalnizBugunkuCekimSayilir` |
 | Hangi teknikle bulundu | beyaz kutu (kod incelemesi ve kayıt zamanı değiştirilen testler) |
 | Etki seviyesi | Yüksek |
 
@@ -581,7 +593,7 @@ Kök neden: `TransactionService.getDailyWithdrawalTotal` hesabın bütün başar
 | İhlal edilen gereksinim | R-10.2, Bölüm 7 |
 | Yeniden üretme adımları | `GET /api/accounts/0000000000` isteği gönder |
 | Beklenen / Gerçekleşen | 404 Not Found ve Bölüm 7 hata gövdesi / 200 OK, boş gövde (`Content-Length: 0`) |
-| Yakalayan test | `it01_getAccount_bulunamayan_404Donmeli`, API-31 (Postman) |
+| Yakalayan test | `AccountControllerIntegrationTest.it01_getAccount_bulunamayan_404Donmeli`, API-31 (Postman) |
 | Hangi teknikle bulundu | API |
 | Etki seviyesi | Orta |
 
@@ -625,21 +637,6 @@ Yerel denemede de tekrarlandı ve toplam 20.001 TL’ye çıktı. Transfer işle
 | Etki seviyesi | Orta |
 
 Yerel denemede sunucu günlüğünde 500 hatalarının nedeni “Deadlock detected” olarak görüldü. A→B ve B→A işlemleri iki hesabı ters sırayla güncellediği için birbirini kilitliyor ve veritabanı işlemlerden birini iptal ediyor.
-
-<!--
-Her hata için aşağıdaki kayıt kullanılacak (Hata No H-01, H-02 ... ve testteki "Rapor: H-xx" yorumuyla aynı):
-
-### H-01 — <tek cümlelik açıklama>
-
-| Alan | Değer |
-|------|-------|
-| İhlal edilen gereksinim | R-x.y / G-x |
-| Yeniden üretme adımları | başlangıç durumu ve işlem sırası |
-| Beklenen / Gerçekleşen | gereksinime göre ne olmalıydı / uygulama ne yaptı |
-| Yakalayan test | SinifAdi.testMetoduAdi veya feature dosyası + senaryo adı |
-| Hangi teknikle bulundu | EP, BVA, karar tablosu, durum geçişi, beyaz kutu, BDD, API, performans, statik analiz |
-| Etki seviyesi | Kritik / Yüksek / Orta / Düşük |
--->
 
 ---
 
@@ -705,6 +702,6 @@ BUILD SUCCESS
 
 Başarısız senaryoda ekran görüntüsü alan kanca, beklenen başlık geçici olarak yanlış yazılarak denendi. Görüntü `target/screenshots/` klasörüne kaydedildi ve Cucumber raporuna eklendi.
 
-GitHub Actions (`ui-tests`) her push'ta Ubuntu üzerinde görünmez (headless) Chrome ile testleri çalıştırıyor; ilk çalışma (commit `d470871`) başarılı oldu.
+GitHub Actions (`ui-tests`) `main` dalına her push'ta Ubuntu üzerinde görünmez (headless) Chrome ile testleri çalıştırıyor; ilk çalışma (commit `d470871`) başarılı oldu.
 
 ![Cucumber raporu: 8 senaryo geçti](img/k2-cucumber-rapor.png)
